@@ -1,0 +1,215 @@
+@import "tailwindcss";
+
+/*
+ * blackbear design tokens.
+ * One accent (lime) for primary actions only. Green / amber / red are reserved
+ * for trust and security. The default Tailwind palette is removed on purpose.
+ */
+@theme {
+  --color-*: initial;
+
+  --color-canvas: #0b0c0f;
+  --color-surface: #14161b;
+  --color-raised: #1a1d23;
+  --color-line: #262a33;
+  --color-line-strong: #363b46;
+  --color-ink: #eceae4;
+  --color-muted: #9097a6;
+  --color-black: #000000;
+
+  --color-accent: #c6f432;
+  --color-accent-hover: #d5f866;
+  --color-on-accent: #0b0c0f;
+
+  --color-safe: #5fd38d;
+  --color-caution: #f2b84b;
+  --color-danger: #ff6b5e;
+
+  --font-sans:
+    "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-rise: rise 0.35s ease-out both;
+  --animate-flash: flash 1.6s ease-out both;
+  --animate-drawer: drawer-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes flash {
+    0%,
+    24%,
+    52% {
+      opacity: 1;
+    }
+    12%,
+    38% {
+      opacity: 0.25;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes drawer-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-line);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-accent) 35%, transparent);
+    color: var(--color-ink);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for] {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Lock page scroll while a modal <dialog> is open. */
+  html:has(dialog[open]) {
+    overflow: hidden;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+}
+
+@layer components {
+  /* Agent-written markdown (ranking summary, compare explanation). */
+  .md {
+    line-height: 1.6;
+  }
+  .md > * + * {
+    margin-top: 0.65em;
+  }
+  .md ul {
+    list-style: disc;
+    padding-left: 1.2rem;
+  }
+  .md ol {
+    list-style: decimal;
+    padding-left: 1.2rem;
+  }
+  .md li + li {
+    margin-top: 0.35em;
+  }
+  .md li::marker {
+    color: var(--color-muted);
+  }
+  .md strong {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .md em {
+    font-style: italic;
+  }
+  .md code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 0.05em 0.35em;
+    border: 1px solid var(--color-line);
+    border-radius: 0.3rem;
+    background-color: var(--color-raised);
+  }
+  .md a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--color-muted);
+  }
+  .md a:hover {
+    text-decoration-color: var(--color-ink);
+  }
+  .md h1,
+  .md h2,
+  .md h3,
+  .md h4 {
+    font-weight: 600;
+    font-size: 1em;
+  }
+  .md blockquote {
+    border-left: 2px solid var(--color-line-strong);
+    padding-left: 0.75rem;
+    color: var(--color-muted);
+  }
+  .md hr {
+    border-top: 1px solid var(--color-line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

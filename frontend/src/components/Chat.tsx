@@ -1,11 +1,12 @@
-import { ArrowDown, ArrowUp, Plus, ShieldCheck, ShieldExclamationPoint, Trophy } from "lucide-react";
+import { ArrowRight, ArrowUp, Plus, ShieldCheck, ShieldExclamationPoint, Trophy, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { deliveryChangesWinner, itemsTotal, membershipBeatsBest } from "../lib/deals";
+import { deliveryChangesWinner, itemsTotal, membershipBeatsBest, rankedOffers } from "../lib/deals";
 import { formatSek } from "../lib/format";
 import { kindLabel, layerLabel } from "../lib/labels";
 import { hasMembership } from "../lib/membership";
+import { navigate } from "../lib/router";
 import { useHuntActions, useHuntState } from "../state/HuntContext";
-import { selectRankedOffers, selectStatusCounts, type HuntState } from "../state/huntReducer";
+import { selectStatusCounts, type HuntState } from "../state/huntReducer";
 import { BrandMark } from "./BrandMark";
 import { SafeMarkdown } from "./SafeMarkdown";
 import { StoreMark } from "./StoreMark";
@@ -20,7 +21,15 @@ export type Msg =
   | { id: string; kind: "plan"; stores: { id: string; name: string }[] }
   | { id: string; kind: "progress"; finished: number; total: number }
   | { id: string; kind: "security"; what: string; layer: string; blocked: boolean }
-  | { id: string; kind: "best"; storeId: string; storeName: string; price: number; why: string | null };
+  | {
+      id: string;
+      kind: "best";
+      offerId: string;
+      storeId: string;
+      storeName: string;
+      price: number;
+      why: string | null;
+    };
 
 export interface Question {
   id: string;
@@ -32,23 +41,25 @@ export interface Conversation {
   /** Everything said so far, oldest first. The open question is separate. */
   thread: Msg[];
   question: Question | null;
-  /** A conversation has started: the page leaves its hero layout. */
-  active: boolean;
   status: string;
   value: string;
   setValue: (v: string) => void;
+  /** Sends what is in the composer. */
   submit: () => void;
+  /** Sends a query from elsewhere on the page (header or home search). */
+  ask: (text: string) => void;
   pickExample: (index: number) => void;
   newSearch: () => void;
   ready: boolean;
 }
 
 export const EXAMPLES = [
-  { label: "65-inch OLED TV", query: "65-inch OLED TV", quantity: 1 },
-  { label: "Saffran 0,5 g × 2", query: "Saffran 0,5 g", quantity: 2 },
+  { label: "65-inch OLED TV", query: "65-inch OLED TV", quantity: 1, image: "/products/lg-oled65c4.webp", stores: 10 },
+  { label: "Saffran 0,5 g × 2", query: "Saffran 0,5 g", quantity: 2, image: "/products/hjartat-saffran.webp", stores: 5 },
 ] as const;
 
 const QTY_QUESTION = "How many do you need?";
+const NOTHING_RANKED = "No offer could be ranked with the available price and shipping evidence.";
 
 /**
  * What the agent says about the hunt in progress, built from the hunt state alone so
@@ -79,7 +90,7 @@ function deriveThread(s: HuntState): Msg[] {
     out.push({ id: `progress-${h}`, kind: "progress", finished: c.done + c.blocked + c.failed, total });
   }
 
-  // The scoreboard keeps newest first; the conversation reads oldest first.
+  // The security log keeps newest first; the conversation reads oldest first.
   for (const e of [...s.security].reverse()) {
     out.push({
       id: `sec-${h}-${e.key}`,
@@ -94,29 +105,32 @@ function deriveThread(s: HuntState): Msg[] {
     out.push({ id: `err-${h}`, kind: "agent", text: `Something went wrong: ${s.error}` });
   }
 
+  const anyOffers = s.offerOrder.length > 0;
   if (s.ranking !== null) {
-    const best = selectRankedOffers(s).offers[0];
+    // Only a ranked offer can be the best deal (unknown shipping, cart mismatch or no stock are not ranked).
+    const best = rankedOffers(s.offers, s.ranking)[0];
     if (best) {
       out.push({
         id: `best-${h}`,
         kind: "best",
+        offerId: best.id,
         storeId: best.store_id,
         storeName: nameOf(best.store_id),
         price: best.effective_total_sek,
         why: s.summaryMd,
       });
     } else {
-      out.push({ id: `none-${h}`, kind: "agent", text: "No offers this time. Try something else?" });
+      out.push({ id: `none-${h}`, kind: "agent", text: anyOffers ? NOTHING_RANKED : "No offers this time. Try something else?" });
     }
-  } else if (s.phase === "done" && Object.keys(s.offers).length === 0) {
+  } else if (s.phase === "done" && !anyOffers) {
     out.push({ id: `none-${h}`, kind: "agent", text: "No offers this time. Try something else?" });
   }
   return out;
 }
 
 /**
- * The conversation: what the shopper typed, what the agent asked, and the live
- * hunt in between. Questions are asked only when the data makes them worth asking.
+ * The conversation: what the shopper typed, what the agent asked, and the live hunt in
+ * between. Questions are asked only when the data makes them worth asking.
  */
 export function useConversation(
   includeDelivery: boolean,
@@ -163,14 +177,19 @@ export function useConversation(
       memberships: withMemberships,
       store_ids: state.config.stores.map((s) => s.id),
     });
+    navigate({ name: "results" });
   };
 
-  const submit = () => {
-    const text = value.trim();
+  const ask = (raw: string) => {
+    const text = raw.trim();
     if (!text || !ready) return;
     if (live) freeze();
     setHistory((h) => [...h, say("user", text)]);
     setDraft(text);
+  };
+
+  const submit = () => {
+    ask(value);
     setValue("");
   };
 
@@ -228,7 +247,7 @@ export function useConversation(
       ],
     };
   } else if (live && state.ranking !== null && request) {
-    const ranked = selectRankedOffers(state).offers;
+    const ranked = rankedOffers(state.offers, state.ranking);
     const flip = deliveryChangesWinner(ranked);
     const chance = membershipBeatsBest(ranked, request.memberships);
     const nameOf = (id: string) => state.config?.stores.find((x) => x.id === id)?.name ?? id;
@@ -313,11 +332,11 @@ export function useConversation(
   return {
     thread: [...history, ...derived, ...answers],
     question,
-    active: history.length > 0 || draft !== null || state.phase !== "idle",
     status,
     value,
     setValue,
     submit,
+    ask,
     pickExample,
     newSearch,
     ready,
@@ -337,7 +356,7 @@ function AgentRow({ children, wide = false }: { children: ReactNode; wide?: bool
   );
 }
 
-function BestMessage({ msg }: { msg: Extract<Msg, { kind: "best" }> }) {
+function BestMessage({ msg, onNavigate }: { msg: Extract<Msg, { kind: "best" }>; onNavigate?: () => void }) {
   const [why, setWhy] = useState(false);
   const whyId = useId();
   return (
@@ -355,14 +374,13 @@ function BestMessage({ msg }: { msg: Extract<Msg, { kind: "best" }> }) {
         <Button
           size="xs"
           variant="ink"
-          icon={ArrowDown}
-          onClick={() =>
-            document.getElementById("products")?.scrollIntoView({
-              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-            })
-          }
+          onClick={() => {
+            navigate({ name: "offer", id: msg.offerId });
+            onNavigate?.();
+          }}
         >
-          Show
+          See it
+          <ArrowRight className="size-3.5" aria-hidden="true" />
         </Button>
         {msg.why ? (
           <Button size="xs" aria-expanded={why} aria-controls={whyId} onClick={() => setWhy((v) => !v)}>
@@ -379,7 +397,7 @@ function BestMessage({ msg }: { msg: Extract<Msg, { kind: "best" }> }) {
   );
 }
 
-function MessageView({ msg }: { msg: Msg }) {
+function MessageView({ msg, onNavigate }: { msg: Msg; onNavigate?: () => void }) {
   switch (msg.kind) {
     case "user":
       return (
@@ -464,7 +482,7 @@ function MessageView({ msg }: { msg: Msg }) {
       );
     }
     case "best":
-      return <BestMessage msg={msg} />;
+      return <BestMessage msg={msg} onNavigate={onNavigate} />;
   }
 }
 
@@ -478,7 +496,6 @@ function QuestionView({ q }: { q: Question }) {
           <Button
             key={o.label}
             size={compact ? "sm" : "xs"}
-            iconOnly={false}
             variant={o.primary ? "primary" : "secondary"}
             className={compact ? "min-w-8" : ""}
             onClick={o.onPick}
@@ -491,7 +508,7 @@ function QuestionView({ q }: { q: Question }) {
   );
 }
 
-function Composer({ conv, hero }: { conv: Conversation; hero: boolean }) {
+function Composer({ conv }: { conv: Conversation }) {
   const { registerQueryInput } = useHuntActions();
   const inputId = useId();
   const onSubmit = (e: FormEvent) => {
@@ -502,7 +519,7 @@ function Composer({ conv, hero }: { conv: Conversation; hero: boolean }) {
   return (
     <form onSubmit={onSubmit} className="relative">
       <label htmlFor={inputId} className="sr-only">
-        {hero ? "What are you hunting for?" : "Message blackbear"}
+        Message blackbear
       </label>
       <input
         id={inputId}
@@ -513,32 +530,37 @@ function Composer({ conv, hero }: { conv: Conversation; hero: boolean }) {
         maxLength={200}
         value={conv.value}
         onChange={(e) => conv.setValue(e.target.value)}
-        placeholder={hero ? "An OLED TV, saffron, anything…" : "Ask for something else…"}
-        className={`w-full rounded-full border bg-surface text-ink transition duration-200 placeholder:text-muted/80 hover:border-line-strong focus:border-ink ${
-          hero
-            ? "h-16 pr-16 pl-6 text-lg shadow-lift"
-            : "h-12 bg-well pr-13 pl-4 text-sm inset-shadow-well focus:bg-surface"
-        }`}
+        placeholder="What are you hunting for?"
+        className="h-12 w-full rounded-full border bg-well pr-13 pl-4 text-sm text-ink transition duration-200 inset-shadow-well placeholder:text-muted/80 hover:border-line-strong focus:border-ink focus:bg-surface"
       />
       <button
         type="submit"
         disabled={!canSend}
         aria-label="Send"
-        className={`absolute top-1/2 right-2 grid -translate-y-1/2 place-items-center rounded-full border border-black/15 bg-accent bg-linear-to-b from-accent-hover to-accent text-on-accent shadow-accent transition duration-150 ease-press enabled:hover:shadow-accent-hover enabled:active:translate-y-[calc(-50%+1px)] enabled:active:shadow-accent-pressed disabled:opacity-40 disabled:shadow-none ${
-          hero ? "size-12" : "size-9"
-        }`}
+        className="absolute top-1/2 right-1.5 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-black/15 bg-accent bg-linear-to-b from-accent-hover to-accent text-on-accent shadow-accent transition duration-150 ease-press enabled:hover:shadow-accent-hover enabled:active:translate-y-[calc(-50%+1px)] enabled:active:shadow-accent-pressed disabled:opacity-40 disabled:shadow-none"
       >
-        <ArrowUp className={hero ? "size-5" : "size-4"} strokeWidth={2.5} aria-hidden="true" />
+        <ArrowUp className="size-4" strokeWidth={2.5} aria-hidden="true" />
       </button>
     </form>
   );
 }
 
 /**
- * The chat. As the hero it is just a big question and a few examples; once the
- * conversation starts it becomes a panel with the full thread.
+ * The chat panel: in the left sidebar on large screens, in a drawer on small ones.
+ * `onNavigate` lets the drawer close itself when a message opens a page.
  */
-export function Chat({ conv, variant }: { conv: Conversation; variant: "hero" | "panel" }) {
+export function Chat({
+  conv,
+  variant,
+  onNavigate,
+  onClose,
+}: {
+  conv: Conversation;
+  variant: "sidebar" | "drawer";
+  onNavigate?: () => void;
+  /** Shown as a close button in the drawer. */
+  onClose?: () => void;
+}) {
   const logRef = useRef<HTMLDivElement>(null);
   const last = conv.thread.at(-1);
   const lastKey = `${conv.thread.length}:${last?.id}:${last?.kind === "progress" ? last.finished : ""}:${conv.question?.id ?? ""}`;
@@ -551,44 +573,17 @@ export function Chat({ conv, variant }: { conv: Conversation; variant: "hero" | 
     log.scrollTo({ top: log.scrollHeight, behavior: reduce ? "auto" : "smooth" });
   }, [lastKey]);
 
-  if (variant === "hero") {
-    return (
-      <div>
-        <Composer conv={conv} hero />
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <span className="grid size-20 shrink-0 place-items-center rounded-full bg-ink text-center text-xs leading-tight font-semibold text-white shadow-ink">
-            Try
-            <br />
-            these
-          </span>
-          {EXAMPLES.map((ex, i) => (
-            <button
-              key={ex.label}
-              type="button"
-              onClick={() => conv.pickExample(i)}
-              disabled={!conv.ready}
-              className="group grid size-20 shrink-0 place-items-center rounded-full border bg-surface px-2 text-center text-[0.7rem] leading-tight font-medium shadow-key transition duration-200 ease-glide hover:-translate-y-0.5 hover:shadow-key-hover active:translate-y-px active:shadow-key-pressed disabled:opacity-50"
-            >
-              <span className="flex flex-col items-center gap-1.5">
-                <span className="size-2 rounded-full bg-accent transition group-hover:scale-125" aria-hidden="true" />
-                {ex.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <section
       aria-label="Chat with blackbear"
-      className="flex flex-col overflow-hidden rounded-[1.75rem] border bg-surface shadow-card motion-safe:animate-pop lg:h-[calc(100dvh-2rem)]"
+      className={`flex flex-col overflow-hidden bg-surface ${
+        variant === "sidebar" ? "h-full rounded-[1.75rem] border shadow-card" : "h-full"
+      }`}
     >
       <header className="flex items-center gap-3 border-b px-4 py-3">
         <BrandMark className="size-9" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">blackbear</p>
+          <p className="text-sm font-semibold">blackbear agent</p>
           <p className="flex items-center gap-1.5 text-xs text-muted" aria-live="polite">
             <span className="size-1.5 rounded-full bg-safe" aria-hidden="true" />
             {conv.status}
@@ -597,6 +592,7 @@ export function Chat({ conv, variant }: { conv: Conversation; variant: "hero" | 
         <Button variant="ghost" size="sm" icon={Plus} onClick={conv.newSearch}>
           New
         </Button>
+        {onClose ? <Button variant="ghost" size="sm" iconOnly icon={X} aria-label="Close chat" onClick={onClose} /> : null}
       </header>
 
       <div
@@ -605,19 +601,19 @@ export function Chat({ conv, variant }: { conv: Conversation; variant: "hero" | 
         aria-live="polite"
         aria-relevant="additions"
         aria-label="Conversation"
-        className="max-h-[60dvh] min-h-48 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 lg:max-h-none"
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4"
       >
         <AgentRow>
-          <p>Hi! What are you looking for?</p>
+          <p>Hi! Tell me what you're hunting for. I'll check every store and bring back proof.</p>
         </AgentRow>
         {conv.thread.map((m) => (
-          <MessageView key={m.id} msg={m} />
+          <MessageView key={m.id} msg={m} onNavigate={onNavigate} />
         ))}
         {conv.question ? <QuestionView key={conv.question.id} q={conv.question} /> : null}
       </div>
 
       <div className="border-t p-3">
-        <Composer conv={conv} hero={false} />
+        <Composer conv={conv} />
       </div>
     </section>
   );

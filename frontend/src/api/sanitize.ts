@@ -139,6 +139,8 @@ export function sanitizeOffer(v: unknown): Offer | null {
   };
   const model = str(v.model_number, 120);
   if (model) offer.model_number = model;
+  const image = str(v.image_url, 2000);
+  if (image) offer.image_url = image;
   const trust = v.trust === undefined ? null : sanitizeTrust(v.trust);
   if (trust) offer.trust = trust;
   return offer;

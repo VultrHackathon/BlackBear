@@ -1,102 +1,164 @@
 import { MessageCircle } from "lucide-react";
-import { useEffect, useRef, useState, type RefObject } from "react";
-import { Chat, useConversation } from "./components/Chat";
-import { HeroArt } from "./components/HeroArt";
-import { ProductShelf } from "./components/ProductShelf";
-import { SandboxStage } from "./components/SandboxStage";
+import { useEffect, useRef, useState } from "react";
+import { Chat, useConversation, type Conversation } from "./components/Chat";
+import { MiniCart, ToastHost } from "./components/ShopOverlays";
 import { SiteFooter, SiteHeader } from "./components/SiteChrome";
+import { useRoute } from "./lib/router";
+import { CartPage } from "./pages/CartPage";
+import { CheckoutPage } from "./pages/CheckoutPage";
+import { ComparePage } from "./pages/ComparePage";
+import { HomePage } from "./pages/HomePage";
+import { OfferPage } from "./pages/OfferPage";
+import { ResultsPage } from "./pages/ResultsPage";
+import { SafetyPage } from "./pages/SafetyPage";
+import { useHuntState } from "./state/HuntContext";
+import { useShop } from "./state/ShopContext";
 
-/** True while the element is at least partly on screen. */
-function useOnScreen(ref: RefObject<HTMLElement | null>): boolean {
-  const [visible, setVisible] = useState(true);
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia?.(query).matches ?? false);
   useEffect(() => {
-    const el = ref.current;
-    if (!el || !("IntersectionObserver" in window)) return;
-    const io = new IntersectionObserver(([entry]) => setVisible(entry?.isIntersecting ?? true), {
-      rootMargin: "-64px 0px -64px 0px",
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [ref]);
-  return visible;
+    const mql = window.matchMedia?.(query);
+    if (!mql) return;
+    const onChange = () => setMatches(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [query]);
+  return matches;
 }
 
 /**
- * One page, three steps: tell the agent what you want, watch the sandboxes, pick a
- * product. Before the first message the chat is the hero; after it, the chat
- * becomes a sticky panel beside the stage and the shelf.
+ * Below the large breakpoint the chat lives in a drawer: a native modal dialog that
+ * slides in from the left. A floating button opens it and shows when the agent asks.
+ */
+function ChatDrawer({ conv }: { conv: Conversation }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
+  const asks = conv.question !== null;
+  const { phase, startedAt } = useHuntState();
+
+  // Once a hunt starts running, step aside so the sandboxes are in view.
+  const shownFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (phase === "running" && startedAt !== shownFor.current) {
+      shownFor.current = startedAt;
+      setOpen(false);
+    }
+  }, [phase, startedAt]);
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="fixed right-4 bottom-4 z-30 flex max-w-[calc(100vw-2rem)] items-center gap-2.5 rounded-full bg-ink py-2 pr-4 pl-2 text-sm text-white shadow-float motion-safe:animate-pop"
+      >
+        <span className="relative grid size-9 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
+          <MessageCircle className="size-4" aria-hidden="true" />
+          {asks ? (
+            <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-white text-[0.6rem] font-extrabold text-ink ring-2 ring-ink">
+              1
+            </span>
+          ) : null}
+        </span>
+        <span className="min-w-0 truncate">
+          {asks ? (
+            <>
+              <b>blackbear asks: </b>
+              {conv.question?.text}
+            </>
+          ) : (
+            <b>Ask blackbear</b>
+          )}
+        </span>
+      </button>
+      <dialog
+        ref={ref}
+        aria-label="Chat with blackbear"
+        onClose={() => setOpen(false)}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setOpen(false);
+        }}
+        className="fixed inset-y-0 right-auto left-0 m-0 h-dvh max-h-none w-[min(26rem,100vw)] max-w-none bg-surface p-0 text-ink shadow-float backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+      >
+        <Chat conv={conv} variant="drawer" onNavigate={() => setOpen(false)} onClose={() => setOpen(false)} />
+      </dialog>
+    </>
+  );
+}
+
+/**
+ * The storefront: the team's mockup layout in the centre, the AI agent in a left
+ * sidebar on every page (a drawer on small screens).
  */
 export default function App() {
-  const [includeDelivery, setIncludeDelivery] = useState(true);
+  const route = useRoute();
+  const { includeDelivery, setIncludeDelivery } = useShop();
   const conv = useConversation(includeDelivery, setIncludeDelivery);
-  const chatRef = useRef<HTMLDivElement>(null);
-  const chatOnScreen = useOnScreen(chatRef);
-  const started = conv.active;
+  const wide = useMediaQuery("(min-width: 1024px)");
+
+  let page;
+  switch (route.name) {
+    case "results":
+      page = <ResultsPage />;
+      break;
+    case "offer":
+      page = <OfferPage key={route.id} id={route.id} />;
+      break;
+    case "compare":
+      page = <ComparePage />;
+      break;
+    case "cart":
+      page = <CartPage />;
+      break;
+    case "checkout":
+      page = <CheckoutPage />;
+      break;
+    case "safety":
+      page = <SafetyPage />;
+      break;
+    default:
+      page = <HomePage conv={conv} />;
+  }
 
   return (
     <>
       <a
-        href="#chat"
+        href="#main"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("main")?.focus();
+        }}
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:border focus:bg-surface focus:px-3 focus:py-2 focus:text-sm"
       >
-        Skip to the chat
+        Skip to content
       </a>
 
-      <SiteHeader />
+      <SiteHeader route={route} onSearch={conv.ask} />
 
-      <main
-        className={`mx-auto grid max-w-[1440px] px-4 sm:px-6 ${
-          started
-            ? "items-start gap-6 pt-2 lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-8"
-            : "items-center gap-12 py-10 lg:min-h-[calc(100dvh-8.25rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:py-8"
-        }`}
-      >
-        <div id="chat" ref={chatRef} className={`min-w-0 scroll-mt-4 ${started ? "lg:sticky lg:top-4" : ""}`}>
-          {started ? null : (
-            <div className="mb-8 motion-safe:animate-rise">
-              <p className="inline-flex items-center gap-2 rounded-full border bg-surface px-3 py-1 text-xs font-medium shadow-card">
-                <span className="size-1.5 rounded-full bg-accent" aria-hidden="true" />
-                AI deal hunter
-              </p>
-              <h1 className="mt-5 text-5xl leading-[0.92] font-extrabold tracking-[-0.05em] sm:text-6xl xl:text-7xl">
-                What are you
-                <br />
-                hunting for?
-              </h1>
-              <p className="mt-5 max-w-md text-lg text-muted">Tell the agent. It checks every store and brings back proof.</p>
-            </div>
-          )}
-          <Chat conv={conv} variant={started ? "panel" : "hero"} />
-        </div>
-
-        {started ? (
-          <div className="min-w-0 space-y-14">
-            <SandboxStage />
-            <ProductShelf includeDelivery={includeDelivery} onIncludeDelivery={setIncludeDelivery} />
-          </div>
-        ) : (
-          <HeroArt />
-        )}
-      </main>
+      <div className="mx-auto grid max-w-[1440px] items-start gap-6 px-4 pt-6 sm:px-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-8">
+        {wide ? (
+          <aside aria-label="blackbear agent" className="sticky top-[5.5rem] h-[calc(100dvh-8.25rem)]">
+            <Chat conv={conv} variant="sidebar" />
+          </aside>
+        ) : null}
+        <main id="main" tabIndex={-1} className="min-w-0 outline-none">
+          {page}
+        </main>
+      </div>
 
       <SiteFooter />
-
-      {/* On small screens the chat scrolls away: bring the agent's question back to it. */}
-      {conv.question && !chatOnScreen ? (
-        <button
-          type="button"
-          onClick={() => chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="fixed inset-x-4 bottom-4 z-40 flex items-center gap-3 rounded-full bg-ink py-2 pr-4 pl-2 text-left text-sm text-white shadow-float motion-safe:animate-pop lg:hidden"
-        >
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
-            <MessageCircle className="size-4" aria-hidden="true" />
-          </span>
-          <span className="min-w-0 flex-1 truncate">
-            <span className="font-semibold">blackbear asks: </span>
-            {conv.question.text}
-          </span>
-        </button>
-      ) : null}
+      {wide ? null : <ChatDrawer conv={conv} />}
+      <MiniCart />
+      <ToastHost />
     </>
   );
 }

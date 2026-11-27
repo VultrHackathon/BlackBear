@@ -124,6 +124,8 @@ export function sanitizeOffer(v: unknown): Offer | null {
     lowest_30d_price_sek: nullableNum(v.lowest_30d_price_sek) ?? null,
     shipping_sek: nullableNum(v.shipping_sek) ?? null,
     unranked_reason: str(v.unranked_reason, 60),
+    match: v.match === "other" ? "other" : "same",
+    match_reason: str(v.match_reason, 200),
     in_stock: bool(v.in_stock) ?? true,
     promos: Array.isArray(v.promos)
       ? v.promos

@@ -106,6 +106,9 @@ export type Offer = {
   shipping_sek: number | null;
   /** Why the offer is not ranked (e.g. "shipping not shown", "cart mismatch"). */
   unranked_reason?: string;
+  /** "other": not the product the shopper asked for (e.g. a different variant). Never ranked. */
+  match?: "same" | "other";
+  match_reason?: string;
   in_stock: boolean;
   promos: Promo[];
   quantity: number;

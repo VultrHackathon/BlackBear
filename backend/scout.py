@@ -57,7 +57,8 @@ def _elements_text(els):
 
 class Scout:
     def __init__(self, sandbox, store, plan, emit, scoreboard, metrics, evidence_dir, mode="hunt", start_url=None,
-                 approver=None):
+                 approver=None, honest=False):
+        self.honest = honest  # demo store: skip the red-team replay and shop normally
         self.approver = approver  # async (store_id, step, action, reason, screenshot) -> bool
         self.sb, self.store, self.plan = sandbox, store, plan
         self.emit, self.score, self.metrics = emit, scoreboard, metrics
@@ -141,7 +142,8 @@ class Scout:
 
     async def run(self):
         sid = self.store["id"]
-        if self.store.get("demo") and self.plan.get("simulate_compromise") and self.mode == "hunt":
+        if self.store.get("demo") and self.plan.get("simulate_compromise") and self.mode == "hunt" \
+                and not self.honest:
             return await self.red_team()
         await self.sb.cmd(cmd="goto", url=self.start_url, timeout=60)
         page = None

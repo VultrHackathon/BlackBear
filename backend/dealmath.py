@@ -223,7 +223,7 @@ def audit(deal, cart):
 
 def rank(deals):
     order = {"verified": 0, "questionable": 1, "unverified": 1, "mismatch": 3}
-    usable, pending, rest = [], [], []
+    usable, pending, other, rest = [], [], [], []
     for deal in deals:
         if not deal:
             continue
@@ -235,6 +235,10 @@ def rank(deals):
         elif deal.get("in_stock") is False:
             deal["unranked_reason"] = "out of stock"
             rest.append(deal)
+        elif deal.get("match") == "other":
+            # not the product the shopper asked for: shown as "Other recommended items", never ranked
+            deal["unranked_reason"] = "different product"
+            other.append(deal)
         elif deal.get("shipping") is None:
             # visible as item subtotals right after the ranked offers, never ranked above them
             deal["unranked_reason"] = "shipping not shown"
@@ -242,8 +246,9 @@ def rank(deals):
         else:
             usable.append(deal)
     pending.sort(key=lambda d: (d["your_total"], order.get(d["audit"]["label"], 2)))
+    other.sort(key=lambda d: (d["your_total"], order.get(d["audit"]["label"], 2)))
 
     usable.sort(key=lambda d: (d["your_total"], order.get(d["audit"]["label"], 2)))
     for i, deal in enumerate(usable, 1):
         deal["rank"] = i
-    return usable + pending + rest
+    return usable + pending + other + rest

@@ -5,7 +5,7 @@ import time
 import traceback
 import uuid
 
-from . import compare, config, contract, dealmath, dispatcher, guard, llm, planner, scout
+from . import compare, config, contract, dealmath, dispatcher, guard, llm, matcher, planner, scout
 
 
 APPROVAL_TIMEOUT_S = 60  # unanswered approvals are denied
@@ -100,6 +100,7 @@ class Hunt:
                     deals.append(d)
                     self.deals = deals
                     await self.emit("deal", d)
+            deals = await matcher.classify(self.plan, deals, self.metrics)
             deals = dealmath.rank(deals)
             self.deals = deals
 
@@ -131,7 +132,7 @@ class Hunt:
             await self.emit("status", {"status": "error", "message": f"{type(e).__name__}: {e}",
                                        "trace": traceback.format_exc()[-1500:]})
 
-    async def _scout(self, store, mode, start_url=None):
+    async def _scout(self, store, mode, start_url=None, honest=False):
         sid = store["id"]
         sb = dispatcher.Sandbox(sid, self.score.proxy_event)
         try:
@@ -153,7 +154,7 @@ class Hunt:
             self.score.counts["sandboxes_created"] += 1
             await self.emit("sandbox", {"store": sid, "mode": mode, "state": "running", "sandbox": sb.id})
             sc = scout.Scout(sb, store, self.plan, self.emit, self.score, self.metrics, self.dir, mode, start_url,
-                             approver=self.request_approval)
+                             approver=self.request_approval, honest=honest)
             try:
                 res = await asyncio.wait_for(sc.run(), config.SANDBOX_TIMEOUT_S)
             except asyncio.TimeoutError:
@@ -169,6 +170,10 @@ class Hunt:
             self.score.counts["sandboxes_destroyed"] += 1
             await self.emit("sandbox", {"store": sid, "mode": mode, "state": "destroyed", "sandbox": sb.id})
         await self.emit("scout_result", res)
+        if res.get("status") == "compromised_demo" and not honest:
+            # The red-team replay is contained; now shop the demo store honestly in a fresh
+            # sandbox, so its hidden cart fee shows up as a real "Fake" verdict.
+            return await self._scout(store, mode, start_url, honest=True)
         return res
 
     async def request_approval(self, store_id, step, action, reason, screenshot):

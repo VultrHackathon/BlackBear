@@ -87,6 +87,8 @@ def offer_out(hunt_id, d):
         "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "trust": trust_out(d),
         **({"unranked_reason": d["unranked_reason"]} if d.get("unranked_reason") else {}),
+        "match": d.get("match", "same"),
+        **({"match_reason": d["match_reason"]} if d.get("match_reason") else {}),
     }
 
 
@@ -189,6 +191,8 @@ def translate(hunt, ev):
     elif k == "scout_result":
         if d.get("mode", "hunt") == "hunt":
             st = {"ok": "done", "partial": "done", "compromised_demo": "blocked"}.get(d["status"], "failed")
+            if d["status"] == "compromised_demo":
+                d = {**d, "reason": "red-team attacks contained; now shopping it honestly in a fresh sandbox"}
             out.append({"type": "store.status", "store_id": d["store"], "status": st,
                         **({"message": d["reason"][:200]} if d.get("reason") else {})})
         else:

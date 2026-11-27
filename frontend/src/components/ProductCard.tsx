@@ -36,10 +36,22 @@ export function TrustPill({ offer, auditing, size = "xs" }: { offer: Offer; audi
     );
   }
   const t = TRUST[offer.trust?.label ?? "unknown"];
+  const why = offer.trust?.reasons?.[0];
   return (
-    <Pill size={size} tone={t.tone} icon={t.icon} className="font-medium">
-      {t.short}
-    </Pill>
+    <span className="group/trust relative inline-flex" tabIndex={0} aria-describedby={`trust-tip-${offer.id}`}>
+      <Pill size={size} tone={t.tone} icon={t.icon} className="cursor-help font-medium">
+        {t.short}
+      </Pill>
+      <span
+        role="tooltip"
+        id={`trust-tip-${offer.id}`}
+        className="pointer-events-none invisible absolute bottom-full left-0 z-40 mb-2 w-72 rounded-xl border border-line-strong bg-raised p-3 text-left text-xs leading-relaxed font-normal text-ink opacity-0 shadow-card transition-opacity group-hover/trust:visible group-hover/trust:opacity-100 group-focus-within/trust:visible group-focus-within/trust:opacity-100"
+      >
+        <span className="block font-semibold">{t.heading}</span>
+        <span className="mt-1 block text-muted">{t.explain}</span>
+        {why ? <span className="mt-1.5 block">For this offer: {why}</span> : null}
+      </span>
+    </span>
   );
 }
 

@@ -42,7 +42,7 @@ export function ResultsPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [shippingOnly, setShippingOnly] = useState(false);
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [showExcluded, setShowExcluded] = useState(false);
+  const [showExcluded, setShowExcluded] = useState(true);
   const [proofId, setProofId] = useState<string | null>(null);
   const proofOffer = proofId ? state.offers[proofId] : undefined;
   const closeProof = () => {
@@ -74,8 +74,13 @@ export function ResultsPage() {
 
   // Before the ranking arrives every offer is provisional; after it, three groups.
   const ranked = provisional ? [] : orderRanked(all.filter((o) => ranks.has(o.id)), includeDelivery);
-  const waiting = provisional ? [] : all.filter((o) => !ranks.has(o.id) && !shippingKnown(o) && o.trust?.label !== "fake");
-  const excluded = provisional ? [] : all.filter((o) => !ranks.has(o.id) && !waiting.includes(o));
+  const isOther = (o: Offer) => o.match === "other" && o.trust?.label !== "fake";
+  const waiting = provisional
+    ? []
+    : all.filter((o) => !ranks.has(o.id) && !isOther(o) && !shippingKnown(o) && o.trust?.label !== "fake");
+  const others = provisional ? [] : all.filter((o) => !ranks.has(o.id) && isOther(o));
+  const excluded = provisional ? [] : all.filter((o) => !ranks.has(o.id) && !waiting.includes(o) && !others.includes(o));
+  const othersShown = sortWith(others.filter(keep));
   const main = sortWith((provisional ? all : ranked).filter(keep));
   const waitingShown = shippingOnly ? [] : sortWith(waiting.filter(keep));
   const excludedShown = showExcluded ? sortWith(excluded.filter(keep)) : [];
@@ -135,7 +140,7 @@ export function ResultsPage() {
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filters">
             <FilterChip on={verifiedOnly} onToggle={() => setVerifiedOnly((v) => !v)}>
-              Real deals only
+              Verified in cart only
             </FilterChip>
             <FilterChip on={shippingOnly} onToggle={() => setShippingOnly((v) => !v)}>
               Shipping known
@@ -223,12 +228,33 @@ export function ResultsPage() {
         </section>
       ) : null}
 
+      {othersShown.length ? (
+        <section className="mt-10" aria-labelledby="other-heading">
+          <h2 id="other-heading" className="text-base font-semibold">
+            Other recommended items
+          </h2>
+          <p className="mt-0.5 text-sm text-muted">
+            Close matches, but not the product you asked for, so they are not ranked against it.
+          </p>
+          <ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-5">
+            {othersShown.map((o) => (
+              <li key={o.id} className="flex flex-col gap-1.5">
+                {card(o, null)}
+                {o.match_reason ? <p className="px-1 text-xs text-muted">Why separate: {o.match_reason}</p> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {excludedShown.length ? (
         <section className="mt-10" aria-labelledby="excluded-heading">
           <h2 id="excluded-heading" className="text-base font-semibold">
             Excluded
           </h2>
-          <p className="mt-0.5 text-sm text-muted">The cart didn't match the page, or the product was out of stock.</p>
+          <p className="mt-0.5 text-sm text-muted">
+            Labelled Fake: the cart didn't match the page (for example a hidden fee), or the product was out of stock.
+          </p>
           <ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-5">
             {excludedShown.map((o) => (
               <li key={o.id} className="flex">
@@ -241,7 +267,7 @@ export function ResultsPage() {
 
       {proofOffer ? <CartProof offer={proofOffer} store={storeById.get(proofOffer.store_id)} onClose={closeProof} /> : null}
 
-      {!running && all.length > 0 && main.length === 0 && !waitingShown.length && !excludedShown.length ? (
+      {!running && all.length > 0 && main.length === 0 && !waitingShown.length && !othersShown.length && !excludedShown.length ? (
         <EmptyState className="mt-6" compact>
           No offers match these filters.
         </EmptyState>

@@ -315,3 +315,30 @@ def test_retry_steps_reach_the_dashboard():
                                          "action": {"action": "retry", "thought": "model call failed; retry 1 of 2"}}}
     out = contract.translate(H(), ev)
     assert out[0]["action"] == {"type": "retry", "text": "model call failed; retry 1 of 2"}
+
+
+def test_different_product_goes_to_other_items():
+    import asyncio
+    from backend import matcher
+
+    plan = {"query": "Alvedon 500 mg 20 st", "product": "Alvedon 500 mg", "size": "20 st"}
+    same = dealmath.compute_deal({"store": "kronans", "store_name": "Kronans", "offer": {
+        "product_name": "Alvedon 500 mg, 20 st", "unit_price": 34, "shipping": {"fee": 0}}, "cart": {"total": 68}}, 2, [])
+    novum = dealmath.compute_deal({"store": "apotea", "store_name": "Apotea", "offer": {
+        "product_name": "Alvedon Novum 500 mg, 20 st", "unit_price": 30, "shipping": {"fee": 0}}, "cart": {"total": 60}}, 2, [])
+    big = dealmath.compute_deal({"store": "apoteket", "store_name": "Apoteket", "offer": {
+        "product_name": "Alvedon 500 mg, 40 st", "unit_price": 50, "shipping": {"fee": 0}}, "cart": {"total": 100}}, 2, [])
+    assert matcher.size_conflict(plan, big) and not matcher.size_conflict(plan, novum)
+
+    async def judge(*a, **k):
+        return {"offers": [{"store": "apotea", "same": False, "reason": "Novum is a different variant"},
+                           {"store": "kronans", "same": True, "reason": ""}]}
+    matcher.llm.chat_json, old = judge, matcher.llm.chat_json
+    try:
+        deals = asyncio.run(matcher.classify(plan, [same, novum, big], None))
+    finally:
+        matcher.llm.chat_json = old
+    ranked = dealmath.rank(deals)
+    assert ranked[0]["store"] == "kronans" and ranked[0]["rank"] == 1
+    others = [d for d in ranked if d.get("unranked_reason") == "different product"]
+    assert {d["store"] for d in others} == {"apotea", "apoteket"} and not any(d.get("rank") for d in others)

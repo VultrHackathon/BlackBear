@@ -32,6 +32,8 @@ class Hunt:
         self.csubs: set = set()
         self._sb_open: dict = {}
         self.approvals: dict = {}
+        # Ask a human before opening a checkout? Off by default: checkout is simply blocked.
+        self.interactive_gates = False
         self._sb_done = 0.0
         self.id = uuid.uuid4().hex[:10]
         self.query, self.quantity, self.memberships = query, int(quantity), list(memberships)
@@ -185,7 +187,7 @@ class Hunt:
             self.score.counts["sandboxes_created"] += 1
             await self.emit("sandbox", {"store": sid, "mode": mode, "state": "running", "sandbox": sb.id})
             sc = scout.Scout(sb, store, self.plan, self.emit, self.score, self.metrics, self.dir, mode, start_url,
-                             approver=self.request_approval, honest=honest)
+                             approver=self.request_approval if self.interactive_gates else None, honest=honest)
             try:
                 res = await asyncio.wait_for(sc.run(), config.SANDBOX_TIMEOUT_S)
             except asyncio.TimeoutError:

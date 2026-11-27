@@ -1,7 +1,6 @@
 import { MessageCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Chat, useConversation, type Conversation } from "./components/Chat";
-import { ApprovalGate } from "./components/ApprovalGate";
 import { MiniCart, ToastHost } from "./components/ShopOverlays";
 import { SiteFooter, SiteHeader } from "./components/SiteChrome";
 import { useRoute } from "./lib/router";
@@ -160,8 +159,6 @@ export default function App() {
       {wide ? null : <ChatDrawer conv={conv} />}
       <MiniCart />
       <ToastHost />
-      {/* Approve-before-submit gate: pops up when an agent wants to open a checkout. */}
-      <ApprovalGate />
     </>
   );
 }

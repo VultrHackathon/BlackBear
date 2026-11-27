@@ -86,8 +86,11 @@ class Scout:
     async def _gate(self, sid, step, action, elements, shot):
         """Action firewall + approve-before-submit gate. Returns (allowed, reason, approved_by_human)."""
         verdict, why = guard.classify_action(sid, action, elements)
+        if verdict == "gate" and not self.approver:
+            # Interactive approval is off (default): BlackBear never opens a checkout.
+            return False, why.replace("needs your approval", "is never allowed: BlackBear doesn't check out"), None
         if verdict == "gate":
-            approved = bool(self.approver) and await self.approver(sid, step, action, why, shot)
+            approved = await self.approver(sid, step, action, why, shot)
             if approved:
                 return True, "approved by a human: view the checkout only; placing the order stays blocked", True
             return False, why.replace("needs your approval", "was not approved") + " (denied or no answer in time)", False

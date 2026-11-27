@@ -1,4 +1,4 @@
-import { brandOf, initials } from "../lib/brands";
+import { brandOf, markOf } from "../lib/brands";
 
 const SIZES = {
   xs: "size-5 rounded-md text-[0.55rem]",
@@ -34,7 +34,7 @@ export function StoreMark({
       style={{ backgroundColor: brand.color, color: brand.ink }}
       className={`inline-grid shrink-0 place-items-center leading-none font-bold tracking-tight shadow-[inset_0_1px_0_rgb(255_255_255/0.22),inset_0_-1px_0_rgb(0_0_0/0.18),0_1px_2px_rgb(0_0_0/0.18)] select-none ${SIZES[size]} ${className}`}
     >
-      {initials(name)}
+      {markOf(id, name)}
     </span>
   );
 }

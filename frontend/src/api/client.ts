@@ -18,6 +18,13 @@ import {
   sanitizeReverify,
 } from "./sanitize";
 
+export interface ChatTurn {
+  intent: "hunt" | "chat";
+  reply: string;
+  query: string | null;
+  quantity: number | null;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
@@ -100,6 +107,20 @@ export const api = {
       ? await (await loadMock()).mockServer.reverifyOffer(offerId)
       : await request(`/api/offers/${enc(offerId)}/reverify`, { method: "POST" });
     return sanitizeReverify(raw);
+  },
+
+  /** Chatting or shopping? Returns a reply, plus a product query when it's a hunt. */
+  async chat(message: string, history: { role: "user" | "agent"; text: string }[]): Promise<ChatTurn> {
+    if (USE_MOCK) return { intent: "hunt", reply: "", query: message, quantity: null };
+    const raw = (await request("/api/chat", { method: "POST", json: { message, history } })) as Record<string, unknown>;
+    const qty = typeof raw?.quantity === "number" && raw.quantity >= 1 && raw.quantity <= 20 ? Math.round(raw.quantity) : null;
+    const query = typeof raw?.query === "string" && raw.query.trim() ? raw.query.slice(0, 200) : null;
+    return {
+      intent: raw?.intent === "hunt" && query ? "hunt" : "chat",
+      reply: typeof raw?.reply === "string" ? raw.reply.slice(0, 400) : "",
+      query,
+      quantity: qty,
+    };
   },
 
   async compare(offerA: string, offerB: string, signal?: AbortSignal): Promise<CompareResponse> {

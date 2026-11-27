@@ -61,7 +61,7 @@ export function HomePage({ conv }: { conv: Conversation }) {
               onChange={(e) => setQ(e.target.value)}
               maxLength={200}
               autoComplete="off"
-              placeholder="e.g. 65-inch OLED TV"
+              placeholder="e.g. Alvedon 500 mg 20 st"
               className="min-w-0 flex-1 bg-white px-3 text-base text-[#141414] placeholder:text-[#63625e]"
             />
             <button

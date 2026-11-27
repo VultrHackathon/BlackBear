@@ -401,3 +401,33 @@ def test_reverify_with_missing_cart_total_does_not_crash(tmp_path, monkeypatch):
     out = h._reverify(deal, recheck)
     assert out["status"] == "changed"
     assert any("not read -> 99 kr" in f for f in deal["audit"]["findings"])
+
+
+def test_chat_intent_and_fallback(monkeypatch):
+    import asyncio
+    from backend import chat
+
+    async def model(*a, **k):
+        return {"intent": "hunt", "reply": "On it.", "query": "Hjärtats saffran 0,5 g", "quantity": 2}
+    monkeypatch.setattr(chat.llm, "chat_json", model)
+    r = asyncio.run(chat.respond("I need 2 bags of saffron", []))
+    assert r == {"intent": "hunt", "reply": "On it.", "query": "Hjärtats saffran 0,5 g", "quantity": 2}
+
+    async def small_talk(*a, **k):
+        return {"intent": "chat", "reply": "Hi!", "query": None, "quantity": 99}
+    monkeypatch.setattr(chat.llm, "chat_json", small_talk)
+    assert asyncio.run(chat.respond("hello", [])) == {"intent": "chat", "reply": "Hi!", "query": None, "quantity": None}
+
+    async def down(*a, **k):
+        raise RuntimeError("inference down")
+    monkeypatch.setattr(chat.llm, "chat_json", down)
+    assert asyncio.run(chat.respond("Alvedon", []))["intent"] == "hunt"   # falls back to a search
+
+
+def test_checkout_is_blocked_without_asking_by_default():
+    import asyncio
+    from backend import scout
+    s = scout.Scout(None, {"id": "apotekhjartat", "name": "Apotek Hjärtat", "start_url": "https://www.apotekhjartat.se/"}, {}, None, None, None, None)
+    els = [{"i": 0, "name": "Till kassan", "href": "https://www.apotekhjartat.se/kassan"}]
+    ok, why, approved = asyncio.run(s._gate("apotekhjartat", 3, {"action": "click", "i": 0}, els, None))
+    assert not ok and approved is None and "never allowed" in why

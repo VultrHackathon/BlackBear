@@ -7,6 +7,7 @@ import { hasMembership } from "../lib/membership";
 import { navigate } from "../lib/router";
 import { useHuntActions, useHuntState } from "../state/HuntContext";
 import { selectStatusCounts, type HuntState } from "../state/huntReducer";
+import { api } from "../api/client";
 import { BrandMark } from "./BrandMark";
 import { SafeMarkdown } from "./SafeMarkdown";
 import { StoreMark } from "./StoreMark";
@@ -54,11 +55,10 @@ export interface Conversation {
 }
 
 export const EXAMPLES = [
-  { label: "65-inch OLED TV", query: "65-inch OLED TV", quantity: 1, image: `${import.meta.env.BASE_URL}products/lg-oled65c4.webp`, stores: 10 },
-  { label: "Saffran 0,5 g × 2", query: "Saffran 0,5 g", quantity: 2, image: `${import.meta.env.BASE_URL}products/hjartat-saffran.webp`, stores: 5 },
+  { label: "Alvedon 500 mg, 20 st × 2", query: "Alvedon 500 mg 20 st", quantity: 2, image: `${import.meta.env.BASE_URL}products/alvedon-500mg.jpg`, stores: 4 },
+  { label: "Saffran 0,5 g × 2", query: "Saffran 0,5 g", quantity: 2, image: `${import.meta.env.BASE_URL}products/hjartat-saffran.webp`, stores: 4 },
 ] as const;
 
-const QTY_QUESTION = "How many do you need?";
 const NOTHING_RANKED = "No offer could be ranked with the available price and shipping evidence.";
 
 /**
@@ -154,6 +154,8 @@ export function useConversation(
   /** Memberships the shopper confirmed in this session. */
   const [memberships, setMemberships] = useState<string[]>([]);
   const [value, setValue] = useState("");
+  /** Waiting for the chat model to read the shopper's message. */
+  const [thinking, setThinking] = useState(false);
 
   const live = state.phase !== "idle" && state.startedAt != null && state.startedAt !== detachedFrom;
   const derived = useMemo(() => (live ? deriveThread(state) : []), [live, state]);
@@ -184,10 +186,27 @@ export function useConversation(
 
   const ask = (raw: string) => {
     const text = raw.trim();
-    if (!text || !ready) return;
+    if (!text || !ready || thinking) return;
     if (live) freeze();
+    const recent = [...history, ...derived, ...answers]
+      .filter((m): m is Extract<Msg, { kind: "user" | "agent" }> => m.kind === "user" || m.kind === "agent")
+      .slice(-6)
+      .map((m) => ({ role: m.kind, text: m.text }));
     setHistory((h) => [...h, say("user", text)]);
-    setDraft(text);
+    setDraft(null);
+    setThinking(true);
+    void api
+      .chat(text, recent)
+      .then((turn) => {
+        if (turn.reply) setHistory((h) => [...h, say("agent", turn.reply)]);
+        if (turn.intent === "hunt" && turn.query) {
+          // Quantity said in the message: go straight away. Otherwise ask once.
+          if (turn.quantity) start(turn.query, turn.quantity, memberships);
+          else setDraft(turn.query);
+        }
+      })
+      .catch(() => setDraft(text)) // chat model unreachable: treat it as a product search
+      .finally(() => setThinking(false));
   };
 
   const submit = () => {
@@ -221,12 +240,12 @@ export function useConversation(
   if (draft !== null) {
     question = {
       id: "qty",
-      text: QTY_QUESTION,
+      text: `How many of “${draft}” do you need?`,
       options: [1, 2, 3, 4, 5, 6].map((n) => ({
         label: String(n),
         primary: n === 1,
         onPick: () => {
-          setHistory((h) => [...h, say("agent", QTY_QUESTION), say("user", String(n))]);
+          setHistory((h) => [...h, say("agent", `How many of “${draft}” do you need?`), say("user", String(n))]);
           setDraft(null);
           start(draft, n, memberships);
         },
@@ -332,7 +351,9 @@ export function useConversation(
               : "Online";
 
   return {
-    thread: [...history, ...derived, ...answers],
+    thread: thinking
+      ? [...history, ...derived, ...answers, { id: "thinking", kind: "typing", text: "Thinking" }]
+      : [...history, ...derived, ...answers],
     question,
     status,
     value,

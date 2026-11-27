@@ -177,16 +177,19 @@ export function SiteFooter() {
       <div className="mx-auto max-w-[1440px] px-4 py-10 sm:px-6">
         {stores.length ? (
           <>
-            <h2 className="text-center text-xs font-medium text-muted">Searching across</h2>
-            <ul className="mt-4 flex flex-wrap justify-center gap-2.5" aria-label="Stores blackbear searches">
+            <h2 className="text-center text-sm font-semibold">
+              Searching across {stores.length} Swedish online pharmacies
+            </h2>
+            <p className="mx-auto mt-1 max-w-xl text-center text-xs text-muted">
+              Every hunt sends one agent to each of these stores, in its own sealed browser. The badges are our
+              shorthand for each store, not their logos.
+            </p>
+            <ul className="mt-4 flex flex-wrap justify-center gap-3" aria-label="Stores blackbear searches">
               {stores.map((s) => (
-                <li key={s.id}>
-                  <StoreMark
-                    id={s.id}
-                    name={s.name}
-                    size="md"
-                    className="transition duration-200 ease-glide hover:-translate-y-0.5"
-                  />
+                <li key={s.id} className="flex items-center gap-2 rounded-xl border bg-canvas/40 py-1.5 pr-3 pl-1.5">
+                  <StoreMark id={s.id} name={s.name} size="sm" decorative />
+                  <span className="text-sm font-medium">{s.name}</span>
+                  <span className="text-xs text-muted">{s.domain}</span>
                 </li>
               ))}
             </ul>

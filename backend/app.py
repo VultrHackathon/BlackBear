@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import compare, config, contract, dealmath, dispatcher, engine, llm, stores
+from . import chat, compare, config, contract, dealmath, dispatcher, engine, llm, stores
 
 app = FastAPI(title="BlackBear", version="0.1")
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +29,7 @@ class HuntIn(BaseModel):
     simulate_compromise: bool | None = None  # default: on when the honeypot is selected (red-team replay)
     budget_sek: float | None = None
     store_ids: list[str] = []
+    approval_gates: bool = False  # opt-in: ask a human before an agent opens a checkout
 
 
 @app.on_event("startup")
@@ -61,6 +62,7 @@ async def create_hunt(body: HuntIn):
     h.simulate_compromise = trap and (body.simulate_compromise if body.simulate_compromise is not None
                                       else "trapshop" in sids)
     h.store_ids = sids
+    h.interactive_gates = body.approval_gates
     h.budget_sek = body.budget_sek if body.budget_sek and body.budget_sek > 0 else None
     engine.HUNTS[h.id] = h
     asyncio.create_task(h.run())
@@ -79,6 +81,17 @@ async def get_hunt(hid: str):
     h = engine.HUNTS.get(hid) or _404()
     return {"id": h.id, "status": h.status, "plan": h.plan, "result": h.result, "metrics": h.metrics.snapshot(),
             "security": h.score.counts}
+
+
+class ChatIn(BaseModel):
+    message: str = Field(min_length=1, max_length=500)
+    history: list[dict] = []
+
+
+@app.post("/api/chat")
+async def chat_turn(body: ChatIn):
+    """Is the shopper chatting or asking for a hunt? Returns a reply, and a query when it's a hunt."""
+    return await chat.respond(body.message, body.history)
 
 
 @app.get("/api/config")

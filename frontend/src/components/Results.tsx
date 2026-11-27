@@ -11,6 +11,7 @@ export function Results() {
   const running = isHuntActive(state.phase);
   const qty = state.request?.quantity ?? 1;
   const unit = qty === 1 ? "unit" : "units";
+  const ranks = new Map<string, number>(state.ranking?.map((id, i) => [id, i + 1]));
 
   const summary =
     state.phase === "idle"
@@ -21,7 +22,9 @@ export function Results() {
           : "No offers found."
         : provisional
           ? `${offers.length} ${offers.length === 1 ? "offer" : "offers"} so far, sorted by effective total. The final ranking comes when every agent is done.`
-          : `${offers.length} ${offers.length === 1 ? "offer" : "offers"}, ranked best first for ${qty} ${unit}.`;
+          : ranks.size === 0
+            ? "No offer could be ranked with the available price and shipping evidence."
+            : `${ranks.size} of ${offers.length} offers ranked for ${qty} ${unit}.`;
 
   return (
     <section aria-labelledby="results-heading" className="space-y-4">
@@ -63,7 +66,7 @@ export function Results() {
         <ol className="space-y-3" aria-label="Offers, best first">
           {offers.map((offer, i) => (
             <li key={offer.id}>
-              <OfferCard offer={offer} rank={i + 1} provisional={provisional} />
+              <OfferCard offer={offer} rank={provisional ? i + 1 : ranks.get(offer.id) ?? null} provisional={provisional} />
             </li>
           ))}
         </ol>

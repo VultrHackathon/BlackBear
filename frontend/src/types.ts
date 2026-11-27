@@ -103,7 +103,9 @@ export type Offer = {
   price_sek: number;
   previous_price_sek?: number | null;
   lowest_30d_price_sek?: number | null;
-  shipping_sek: number;
+  shipping_sek: number | null;
+  /** Why the offer is not ranked (e.g. "shipping not shown", "cart mismatch"). */
+  unranked_reason?: string;
   in_stock: boolean;
   promos: Promo[];
   quantity: number;

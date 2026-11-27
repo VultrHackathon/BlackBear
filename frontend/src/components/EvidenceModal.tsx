@@ -131,7 +131,7 @@ export function EvidenceModal({
             {formatSek(offer.price_sek)}
             <span className="text-muted">
               {" "}
-              · effective total {formatSek(offer.effective_total_sek)} for {offer.quantity}
+              · {offer.shipping_sek === null ? "item subtotal" : "effective total"} {formatSek(offer.effective_total_sek)} for {offer.quantity}
             </span>
           </dd>
 

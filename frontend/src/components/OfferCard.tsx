@@ -19,7 +19,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: number; provisional: boolean }) {
+export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: number | null; provisional: boolean }) {
   const state = useHuntState();
   const { reverify, toggleCompare } = useHuntActions();
   const [evidenceOpen, setEvidenceOpen] = useState(false);
@@ -38,6 +38,7 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
   const compareDisabled = !checked && state.compare.length >= 2;
   const isBest = rank === 1 && !provisional;
   const qty = offer.quantity;
+  const shipping = offer.shipping_sek;
   const overBudget = budget != null && offer.effective_total_sek > budget;
 
   return (
@@ -51,9 +52,9 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
           className={`grid h-7 min-w-7 place-items-center rounded-md border px-1.5 font-mono text-xs tabular-nums ${
             isBest ? "border-ink/60 bg-raised text-ink shadow-key" : "bg-well text-muted inset-shadow-well"
           }`}
-          aria-label={`Rank ${rank}`}
+          aria-label={rank === null ? "Unranked" : `Rank ${rank}`}
         >
-          #{rank}
+          {rank === null ? "–" : `#${rank}`}
         </span>
         <div className="min-w-0 flex-1 basis-56">
           <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
@@ -63,6 +64,11 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
               <span className="inline-flex items-center gap-1 text-ink">
                 <Trophy className="size-3.5" aria-hidden="true" />
                 Best deal
+              </span>
+            ) : null}
+            {rank === null && !provisional ? (
+              <span className="text-muted">
+                Not ranked · {offer.unranked_reason ?? (offer.shipping_sek === null ? "shipping not shown" : "excluded")}
               </span>
             ) : null}
           </p>
@@ -77,13 +83,14 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
       <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:items-end">
         <div>
           <p className="text-xs text-muted">
-            Effective total · {qty} {qty === 1 ? "unit" : "units"}, shipping incl.
+            {shipping === null ? "Item subtotal" : "Effective total"} · {qty} {qty === 1 ? "unit" : "units"}
+            {shipping !== null ? ", shipping incl." : ""}
           </p>
           <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{formatSek(offer.effective_total_sek)}</p>
           <p className="mt-0.5 text-sm text-muted tabular-nums">{formatSek(offer.effective_unit_sek)} per unit</p>
           {overBudget ? (
             <Pill as="p" tone="strong" shape="tag" icon={Wallet} className="mt-2">
-              Over budget by {formatSek(offer.effective_total_sek - (budget as number))}
+              Over budget by {shipping === null ? "at least " : ""}{formatSek(offer.effective_total_sek - (budget as number))}
             </Pill>
           ) : null}
         </div>
@@ -103,7 +110,7 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
               <span className="text-muted">no history</span>
             )}
           </Detail>
-          <Detail label="Shipping">{offer.shipping_sek === 0 ? "Free" : formatSek(offer.shipping_sek)}</Detail>
+          <Detail label="Shipping">{shipping === null ? "Unknown" : shipping === 0 ? "Free" : formatSek(shipping)}</Detail>
         </dl>
       </div>
 

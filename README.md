@@ -11,3 +11,11 @@ A web-based agent that plans a task, dispatches it to an isolated sandbox on Vul
 
 ## Configuration
 Copy `.env.example` to `.env` and fill in the values. Never commit `.env`.
+
+## Repository layout
+| Path | What |
+| --- | --- |
+| `frontend/` | Web UI (React + TypeScript + Vite). Runs standalone in mock mode: `cd frontend && npm install && npm run dev`. See [frontend/README.md](frontend/README.md). |
+| `backend/` | FastAPI app + orchestrator (to be added by the backend team). It must implement the [API contract](frontend/README.md#api-contract) the frontend uses. In dev, the frontend proxies `/api` to `http://localhost:8000`. |
+
+The root `.env.example` is for the backend; the frontend has its own in `frontend/.env.example`.

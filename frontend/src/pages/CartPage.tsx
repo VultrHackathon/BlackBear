@@ -53,7 +53,7 @@ function Line({ line }: { line: CartLine }) {
   const live = Boolean(offers[line.offerId]);
   const t = TRUST[line.trust];
   return (
-    <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-4 gap-y-3 px-4 py-4 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] sm:items-center">
+    <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-4 gap-y-3 px-4 py-4">
       <ProductPhoto src={line.imageUrl} alt="" storeId={line.storeId} storeName={line.storeName} className="aspect-square" pad="p-1.5" />
       <div className="min-w-0">
         {live ? (
@@ -74,11 +74,11 @@ function Line({ line }: { line: CartLine }) {
           ) : null}
         </p>
       </div>
-      <div className="col-start-2 flex items-center sm:col-start-auto">
+      <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <QtyStepper value={line.qty} min={1} label={line.title} onChange={(n) => setQty(line.offerId, n)} />
-        <Button variant="ghost" size="sm" iconOnly icon={Trash2} aria-label={`Remove ${line.title}`} className="ml-1" onClick={() => removeLine(line.offerId)} />
+        <Button variant="ghost" size="sm" iconOnly icon={Trash2} aria-label={`Remove ${line.title}`} onClick={() => removeLine(line.offerId)} />
+        <p className="ml-auto font-bold tabular-nums">{formatSek(line.unitItems * line.qty)}</p>
       </div>
-      <p className="col-start-2 text-right font-bold tabular-nums sm:col-start-auto sm:min-w-24">{formatSek(line.unitItems * line.qty)}</p>
     </li>
   );
 }

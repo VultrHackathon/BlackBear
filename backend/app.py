@@ -219,6 +219,7 @@ def _404():
 
 
 app.mount("/trap", StaticFiles(directory=WEB / "trap", html=True), name="trap")
+app.mount("/mockup", StaticFiles(directory=WEB / "mockup", html=True), name="mockup")  # e-commerce design mockup
 app.mount("/lite", StaticFiles(directory=WEB, html=True), name="lite")
 if FRONTEND_DIST.exists():
     app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

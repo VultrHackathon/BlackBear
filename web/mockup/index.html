@@ -53,6 +53,31 @@ hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .thumb{background:linear-gradient(135deg,#f9e79f,#f5b041);border-radius:10px;display:grid;place-items:center;font-size:42px;aspect-ratio:1}
 .thumb.tab{background:linear-gradient(135deg,#d6eaf8,#85c1e9)}
+.pimg{background:#fff;border:1px solid var(--line);border-radius:10px;display:grid;place-items:center;aspect-ratio:1;overflow:hidden;padding:8%}
+.pimg img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+/* live search panel */
+.topbar{position:fixed;left:0;right:0;top:0;height:3px;z-index:30;pointer-events:none;display:none}
+.topbar.on{display:block}.topbar i{display:block;height:100%;background:var(--acc);box-shadow:0 0 8px var(--acc);transition:width .4s ease;width:0}
+.live{padding:16px 18px;margin:12px 0 18px}
+.live .lh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dotlive{width:9px;height:9px;border-radius:50%;background:#e11d48;box-shadow:0 0 0 0 #e11d4866;animation:pulse 1.4s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px #e11d4800}100%{box-shadow:0 0 0 0 #e11d4800}}
+.livetag{font-size:11px;font-weight:800;letter-spacing:.08em;color:#e11d48}
+.bar-o{height:10px;border-radius:99px;background:var(--soft);overflow:hidden;margin:12px 0 10px}
+.bar-o i{display:block;height:100%;width:0;border-radius:99px;transition:width .45s ease;
+  background:repeating-linear-gradient(45deg,#14171c 0 10px,#2d333d 10px 20px);background-size:28px 28px;animation:stripes 1s linear infinite}
+.bar-o.done i{background:var(--ok);animation:none}
+@keyframes stripes{to{background-position:28px 0}}
+.stages{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.stages span{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--mut)}
+.stages span.on{background:var(--ink);color:#fff}.stages span.done{background:var(--okBg);color:var(--ok)}
+.srow{display:grid;grid-template-columns:150px 1fr 90px;gap:12px;align-items:center;padding:7px 0;border-top:1px dashed var(--line);font-size:13px}
+.srow .act{grid-column:2/3;color:var(--mut);font:12px/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-s{height:6px;border-radius:99px;background:var(--soft);overflow:hidden}.bar-s i{display:block;height:100%;width:0;background:var(--ink);transition:width .4s}
+.srow.ok .bar-s i{background:var(--ok)}.srow .st{text-align:right;font-weight:600}
+.skel{background:linear-gradient(90deg,#eef0f3 25%,#f7f8fa 37%,#eef0f3 63%);background-size:400% 100%;animation:sk 1.3s ease infinite}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.newin{animation:in .35s}
 .storeDot{width:22px;height:22px;border-radius:6px;display:inline-grid;place-items:center;font-size:11px;font-weight:800;color:#fff;flex:none}
 .qty{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
 .qty button{border:0;background:#fff;width:32px;height:34px;font-size:16px}.qty span{width:34px;display:grid;place-items:center;font-weight:600}
@@ -64,7 +89,7 @@ hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 .bigsearch input{flex:1;border:0;font:inherit;font-size:17px;padding:0 10px;outline:0;min-width:0}
 .how{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
 .how .card{padding:16px}.how b{display:block;margin-bottom:4px}
-.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.cats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .cat{padding:14px;display:flex;gap:12px;align-items:center}
 
 /* results */
@@ -78,7 +103,7 @@ hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 .plist{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .pc{display:flex;flex-direction:column;overflow:hidden}
 .pc .img{position:relative;padding:14px;padding-bottom:0}
-.pc .img .thumb{aspect-ratio:4/3}
+.pc .img .pimg{aspect-ratio:4/3}
 .pc .rank{position:absolute;top:22px;left:22px;background:var(--ink);color:#fff;border-radius:8px;padding:2px 8px;font-weight:800;font-size:13px}
 .pc .body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
 .pc .ttl{font-weight:600;line-height:1.3}
@@ -96,7 +121,10 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
 .shot .cnt{flex:1;padding:16px;display:grid;grid-template-columns:120px 1fr;gap:14px}
 .shot .tag{position:absolute;bottom:10px;left:10px;background:#000c;color:#fff;font-size:12px;border-radius:7px;padding:3px 8px}
 .thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-.thumbs button{border:2px solid transparent;border-radius:9px;padding:0;background:#fff;overflow:hidden;aspect-ratio:4/3;font-size:11px;color:var(--mut)}
+.thumbs button{border:2px solid transparent;border-radius:9px;padding:0;background:#fff;overflow:hidden;aspect-ratio:4/3;font-size:11px;color:var(--mut);position:relative}
+.thumbs button img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.thumbs button span{position:absolute;left:4px;bottom:4px;background:#000b;color:#fff;border-radius:5px;padding:0 5px;font-size:10.5px}
+.gallery .main img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
 .thumbs button.on{border-color:var(--ink)}
 .buybox{padding:20px;position:sticky;top:120px}
 .buybox .big{font-size:38px}
@@ -156,6 +184,7 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
 </style>
 </head>
 <body>
+<div class="topbar" id="topbar"><i></i></div>
 <div class="demo">Design mockup · all prices, stores and results below are <b>example data</b> for illustration</div>
 
 <header>
@@ -217,10 +246,8 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
 
   <h2 style="margin-top:30px">Popular hunts</h2>
   <div class="cats">
-    <a class="card cat" href="javascript:startHunt('Hjärtats saffran 0,5 g')"><div class="thumb" style="width:52px;font-size:24px">🌼</div><div><b>Saffran 0,5 g</b><div class="xs mut">Lucia season · 4 stores</div></div></a>
-    <a class="card cat" href="javascript:startHunt('Alvedon 500 mg 20 st')"><div class="thumb tab" style="width:52px;font-size:24px">💊</div><div><b>Alvedon 500 mg</b><div class="xs mut">4 stores</div></div></a>
-    <a class="card cat" href="javascript:startHunt('Bepanthen 100 g')"><div class="thumb tab" style="width:52px;font-size:24px">🧴</div><div><b>Bepanthen 100 g</b><div class="xs mut">4 stores</div></div></a>
-    <a class="card cat" href="javascript:startHunt('Vitamin D 50 µg')"><div class="thumb" style="width:52px;font-size:24px">☀️</div><div><b>Vitamin D</b><div class="xs mut">4 stores</div></div></a>
+    <a class="card cat" href="javascript:startHunt('Hjärtats saffran 0,5 g')"><div class="pimg" style="width:64px;padding:4px"><img src="https://assets.icanet.se/image/upload/v1715154956/1015751_oga0eq.webp" alt="Hjärtats saffran"></div><div><b>Hjärtats saffran 0,5 g</b><div class="xs mut">Lucia season · 4 stores</div></div></a>
+    <a class="card cat" href="javascript:startHunt('Alvedon 500 mg 20 st')"><div class="pimg" style="width:64px;padding:4px"><img src="https://media.apotea.se/product-images/L/alvedon-novum-filmdragerad-tablett-500-mg-20-st-2-9.jpg" alt="Alvedon"></div><div><b>Alvedon 500 mg, 20 st</b><div class="xs mut">4 stores</div></div></a>
   </div>
 </div></section>
 
@@ -231,7 +258,13 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
     <div><h1 id="rq">“Alvedon 500 mg 20 st” × 2</h1><div class="sm mut" id="rsum">Hunting in 4 stores…</div></div>
     <button class="btn sm" onclick="go('plan')">View plan &amp; live sandboxes</button>
   </div>
-  <div class="progress" id="prog"></div>
+  <div class="card live" id="live" style="display:none">
+    <div class="lh"><span class="dotlive" id="ldot"></span><span class="livetag" id="ltag">LIVE</span>
+      <b id="lstage">Planning the search…</b><span class="mut sm" id="lcount"></span><span class="mut sm" style="margin-left:auto" id="ltime">0:00</span></div>
+    <div class="bar-o" id="lbar"><i></i></div>
+    <div class="stages" id="lstages"><span>Plan</span><span>Visit stores</span><span>Read carts</span><span>Re-verify</span><span>Done</span></div>
+    <div id="lrows"></div>
+  </div>
 
   <div class="layout">
     <aside class="filters"><div class="card">
@@ -332,6 +365,18 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
 const STORES = {
   apotea:{name:"Apotea",c:"#e30613",ab:"Ae"}, apoteket:{name:"Apoteket",c:"#007a3d",ab:"At"},
   hjartat:{name:"Apotek Hjärtat",c:"#e4007c",ab:"H"}, kronans:{name:"Kronans Apotek",c:"#c8a200",ab:"K"}};
+/* Product photos: hotlinked from each store's own site. Screenshots: taken by our sandboxes in a real hunt. */
+const IMG = {
+  apotea:"https://media.apotea.se/product-images/L/alvedon-novum-filmdragerad-tablett-500-mg-20-st-2-9.jpg",
+  apoteket:"https://www.apoteket.se/produktbilder/Validoo/097610js.jpg",
+  hjartat:"https://assets.icanet.se/image/upload/v1729869927/37434.webp",
+  kronans:"https://www.kronansapotek.se/k2/images/097610/large/0.jpg"};
+const SHOTS = {
+  apotea:{search:"hunt-apotea-01",product:"hunt-apotea-04",cart:"hunt-apotea-12"},
+  apoteket:{search:"hunt-apoteket-01",product:"hunt-apoteket-02",cart:"hunt-apoteket-10",verify:"verify-apoteket-11"},
+  hjartat:{search:"hunt-apotekhjartat-01",product:"hunt-apotekhjartat-03",cart:"hunt-apotekhjartat-09"},
+  kronans:{search:"hunt-kronans-01",product:"hunt-kronans-03",cart:"hunt-kronans-07",verify:"verify-kronans-05"}};
+const pimg = (o, st="") => `<div class="pimg" style="${st}"><img src="${IMG[o.store]}" alt="${o.title}" loading="lazy"></div>`;
 const OFFERS = [
   {id:"o1",store:"apotea",title:"Alvedon 500 mg filmdragerade tabletter, 20 st",unit:34,qty:2,items:68,ship:0,shipNote:"Free shipping",trust:"ok",promo:null,emoji:"💊",
    audit:["Guest cart total 68 kr matches the computed price.","Re-verified in a fresh sandbox: same price."],low30:34},
@@ -371,20 +416,49 @@ addEventListener("hashchange", route);
 
 /* ---------- home ---------- */
 let homeQty = 2; function hq(d){ homeQty = Math.max(1, Math.min(6, homeQty + d)); document.getElementById("hq").textContent = homeQty; }
-let huntDone = true;
+let huntDone = true, doneStores = new Set(), timers = [];
+const SCRIPT = {   // what each scout does, with the second it happens (example timing)
+  apotea:  [[1.2,"goto apotea.se/search?q=Alvedon+500+mg"],[2.6,"click [112] “Alvedon 500 mg 20 st”"],[4.0,"extract price 34 kr"],[5.4,"type [9] quantity “2”"],[6.6,"add to cart"],[7.8,"read cart: 68 kr"]],
+  kronans: [[1.4,"goto kronansapotek.se/search?q=Alvedon"],[3.0,"accept cookies"],[4.6,"click [27] “Alvedon 500 mg”"],[6.2,"extract price 34 kr"],[7.6,"add to cart"],[9.2,"read cart: 87 kr incl. 19 kr shipping"]],
+  apoteket:[[1.0,"goto apoteket.se/sok/?q=Alvedon+500+mg"],[2.8,"click [6] “Alvedon, filmdragerad tablett”"],[4.4,"extract price 35 kr · “2 för 59 kr”"],[6.0,"type [18] quantity “2”"],[8.0,"add to cart"],[10.4,"read cart: 59 kr"]],
+  hjartat: [[1.6,"goto apotekhjartat.se/sok/?q=Alvedon"],[3.4,"click [14] “Alvedon Filmdragerad Tablett”"],[5.0,"extract price 35 kr"],[6.8,"add to cart"],[8.6,"open cart"],[11.0,"read cart: 70 kr (shipping not shown)"]]};
+const REVERIFY_AT = 11.6, DONE_AT = 14.2;
+function fmt(t){ return `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`; }
+function setOverall(p){ document.querySelector("#lbar i").style.width = p + "%"; document.querySelector("#topbar i").style.width = p + "%"; }
+function setStage(i, text){ document.getElementById("lstage").textContent = text;
+  document.querySelectorAll("#lstages span").forEach((s,j) => s.className = j < i ? "done" : j === i ? "on" : ""); }
 function startHunt(q){
+  timers.forEach(clearTimeout); timers = []; doneStores = new Set(); huntDone = false;
   document.getElementById("rq").textContent = `“${q}” × ${homeQty}`;
-  huntDone = false; go("results");
-  const prog = document.getElementById("prog");
-  const names = Object.values(STORES).map(s => s.name);
-  prog.innerHTML = names.map((n,i) => `<div class="ps" id="ps${i}"><span class="spin"></span>${n}<span class="mut">· searching</span></div>`).join("");
-  document.getElementById("rsum").textContent = "Agents are visiting 4 stores. Results appear as they are verified.";
-  renderList(0);
-  names.forEach((n,i) => setTimeout(() => {
-    document.getElementById("ps"+i).innerHTML = `✓ ${n} <span class="mut">· cart read</span>`;
-    renderList(i+1);
-    if (i === names.length-1){ huntDone = true; document.getElementById("rsum").textContent = "Done in 2:07 · 4 stores · re-verified in fresh sandboxes"; prog.innerHTML += `<div class="ps">🛡️ 5 risky actions blocked · <a href="#safety" style="color:var(--blue)">details</a></div>`; }
-  }, 700 + i*650));
+  go("results");
+  const live = document.getElementById("live"); live.style.display = "";
+  document.getElementById("lbar").classList.remove("done"); document.getElementById("ldot").style.display = "";
+  document.getElementById("ltag").textContent = "LIVE"; document.getElementById("topbar").classList.add("on");
+  document.getElementById("rsum").textContent = "Agents are visiting 4 stores right now. Offers appear as soon as their cart is read.";
+  document.getElementById("lrows").innerHTML = Object.entries(SCRIPT).map(([k]) => `
+    <div class="srow" id="sr-${k}"><span class="row">${dot(k)} <b>${STORES[k].name}</b></span><div class="bar-s"><i></i></div><span class="st mut">starting…</span>
+      <span></span><div class="act">booting a fresh sandbox (gVisor) · locked to ${STORES[k].name.toLowerCase().replace(/ /g,"")}.se</div></div>`).join("");
+  setStage(0, "Planning the search…"); setOverall(4); renderList(0);
+  const t0 = Date.now(); const tick = setInterval(() => { document.getElementById("ltime").textContent = fmt((Date.now()-t0)/1000); if (huntDone) clearInterval(tick); }, 250);
+  timers.push(setTimeout(() => setStage(1, "Agents are visiting the stores…"), 900));
+  const allSteps = Object.values(SCRIPT).reduce((a,s) => a + s.length, 0); let stepsDone = 0;
+  Object.entries(SCRIPT).forEach(([k, steps]) => steps.forEach(([t, txt], i) => timers.push(setTimeout(() => {
+    const row = document.getElementById("sr-"+k); stepsDone++;
+    row.querySelector(".act").textContent = "▸ " + txt;
+    row.querySelector(".bar-s i").style.width = ((i+1)/steps.length*100) + "%";
+    row.querySelector(".st").textContent = i === steps.length-1 ? "✓ cart read" : `step ${i+1}/${steps.length}`;
+    setOverall(4 + 76 * stepsDone / allSteps);
+    if (/add to cart|read cart/.test(txt)) setStage(2, "Reading the real carts…");
+    if (i === steps.length-1){ row.classList.add("ok"); row.querySelector(".st").style.color = "var(--ok)"; doneStores.add(k); renderList();
+      document.getElementById("lcount").textContent = `· ${doneStores.size} of 4 stores done`; }
+  }, t*1000))));
+  timers.push(setTimeout(() => { setStage(3, "Re-checking the top 3 in fresh sandboxes…"); setOverall(88); }, REVERIFY_AT*1000));
+  timers.push(setTimeout(() => {
+    huntDone = true; setStage(5, "Done: 4 stores checked, top 3 re-verified"); setOverall(100);
+    document.getElementById("lbar").classList.add("done"); document.getElementById("ldot").style.display = "none";
+    document.getElementById("ltag").textContent = "✓"; setTimeout(() => document.getElementById("topbar").classList.remove("on"), 600);
+    document.getElementById("rsum").innerHTML = `Done in ${fmt(DONE_AT)} · 4 stores · 🛡️ 5 risky actions blocked · <a href="#safety" style="color:var(--blue)">details</a>`;
+  }, DONE_AT*1000));
 }
 
 /* ---------- results ---------- */
@@ -396,11 +470,14 @@ function sorted(){
   return [ranked, rest];
 }
 function renderList(n){
-  const [ranked, rest] = sorted();
+  let [ranked, rest] = sorted();
+  const vis = o => huntDone || doneStores.has(o.store);
+  const pendingN = Object.keys(STORES).length - (huntDone ? 4 : doneStores.size);
+  ranked = ranked.filter(vis); rest = rest.filter(vis);
   let shown = n == null ? null : n;
   const card = (o, rank) => `
-    <div class="card pc ${rank ? "" : "unranked"}">
-      <div class="img"><div class="thumb tab">${o.emoji}</div>${rank ? `<span class="rank">#${rank}</span>` : ""}</div>
+    <div class="card pc ${rank ? "" : "unranked"} ${huntDone ? "" : "newin"}">
+      <div class="img">${pimg(o)}${rank ? `<span class="rank">#${rank}</span>` : ""}</div>
       <div class="body">
         <div class="row xs mut">${dot(o.store)} ${STORES[o.store].name}</div>
         <a class="ttl" href="#offer/${o.id}">${o.title}</a>
@@ -412,23 +489,26 @@ function renderList(n){
       </div></div>`;
   let html = ranked.map((o,i) => card(o, i+1)).join("");
   if (rest.length) html += `<div style="grid-column:1/-1" class="sm mut">Not ranked yet: shipping wasn't shown before checkout</div>` + rest.map(o => card(o, 0)).join("");
-  if (shown === 0) html = [1,2,3].map(() => `<div class="card pc"><div class="img"><div class="thumb" style="background:#eef0f3"></div></div><div class="body"><div class="mut sm">Waiting for a verified price…</div></div></div>`).join("");
+  if (!huntDone && pendingN > 0) html += Array.from({length: pendingN}, () => `<div class="card pc"><div class="img"><div class="pimg skel" style="aspect-ratio:4/3;border:0"></div></div><div class="body"><div class="skel" style="height:14px;width:60%;border-radius:6px"></div><div class="skel" style="height:22px;width:40%;border-radius:6px"></div><div class="mut sm">Waiting for a verified cart price…</div></div></div>`).join("");
   document.getElementById("plist").innerHTML = html;
-  document.getElementById("rcount").textContent = `${ranked.length} ranked · ${rest.length} waiting on shipping`;
+  document.getElementById("rcount").textContent = huntDone ? `${ranked.length} ranked · ${rest.length} waiting on shipping` : `${ranked.length + rest.length} offers so far · ranking updates live`;
 }
 
 /* ---------- offer page ---------- */
 function renderOffer(id){
   const o = OFFERS.find(x => x.id === id) || OFFERS[0]; current = o;
   const s = STORES[o.store];
-  const shots = [["Product page", `${s.name} · product page`], ["Cart", `${s.name} · cart (guest)`], ["Re-verify", "fresh sandbox · same price"], ["Search", "search results"]];
+  const sh = SHOTS[o.store];
+  const shots = [["Product page", sh.product], ["Cart", sh.cart], ["Re-verify", sh.verify], ["Search", sh.search]].filter(x => x[1]);
+  window._shots = shots;
   document.getElementById("offerWrap").innerHTML = `
   <div class="crumbs"><a href="#home">Home</a> › <a href="#results">Results</a> › ${s.name}</div>
   <div class="offer">
     <div class="gallery">
-      <div class="main" id="gmain">${shot(o, shots[0])}</div>
-      <div class="thumbs">${shots.map((x,i) => `<button class="${i?"":"on"}" onclick="pickShot(${i},this)">${x[0]}</button>`).join("")}</div>
-      <p class="xs mut">Screenshots taken inside the sandbox when the price was read. This is your proof.</p>
+      <div class="main" id="gmain">${shot(shots[0])}</div>
+      <div class="thumbs">${shots.map((x,i) => `<button class="${i?"":"on"}" onclick="pickShot(${i},this)"><img src="shots/${x[1]}.jpg" alt=""><span>${x[0]}</span></button>`).join("")}
+        <button onclick="toast('Product photo from ${s.name}')" style="padding:6px">${pimg(o,"border:0;aspect-ratio:auto;height:100%;padding:0")}</button></div>
+      <p class="xs mut">Real screenshots taken inside the sandbox while the price was read. This is your proof.</p>
     </div>
     <div class="card buybox">
       <div class="row sm">${dot(o.store)} <b>${s.name}</b> ${trustPill(o.trust)}</div>
@@ -455,12 +535,11 @@ function renderOffer(id){
   <div class="tabpane"><div class="log">${LOG.filter(l => l.startsWith(s.name.split(" ")[0].slice(0,6))).map(l => `<div>${l}</div>`).join("") || "<div>goto → search → open product → add to cart → read cart</div>"}</div></div>
   <div class="tabpane"><p class="sm">This browser could only reach <b>${s.name.toLowerCase().replace(/ /g,"")}.se</b>. 4 tracker requests were blocked. No login, checkout or payment was attempted.</p></div>`;
 }
-function shot(o, [tag, url]){
-  return `<div class="shot"><div class="bar"><i></i><i></i><i></i> ${url}</div><div class="cnt"><div class="thumb tab">${o.emoji}</div>
-    <div><b>${o.title}</b><div class="price" style="font-size:22px;margin:6px 0">${kr(o.unit)}</div>${tag==="Cart" ? `<div class="sm">Varukorg · ${o.qty} st · <b>${kr(o.items)}</b></div>` : `<div class="sm mut">I lager · Lägg i varukorgen</div>`}</div></div><span class="tag">📸 ${tag}</span></div>`;
+function shot([tag, file]){
+  return `<a href="shots/${file}.jpg" target="_blank" rel="noopener"><img src="shots/${file}.jpg" alt="${tag} screenshot"></a><span class="tag" style="position:absolute;bottom:10px;left:10px;background:#000c;color:#fff;font-size:12px;border-radius:7px;padding:3px 8px">📸 ${tag} · sandbox screenshot</span>`;
 }
-function pickShot(i, b){ const sh=[["Product page","product page"],["Cart","cart (guest)"],["Re-verify","fresh sandbox"],["Search","search results"]];
-  document.getElementById("gmain").innerHTML = shot(current, sh[i]); b.parentNode.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); }
+function pickShot(i, b){ document.getElementById("gmain").innerHTML = shot(window._shots[i]);
+  b.parentNode.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); }
 function tab(i, b){ b.parentNode.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll("#offerWrap .tabpane").forEach((p,j) => p.classList.toggle("on", i === j)); }
 
@@ -496,7 +575,7 @@ function renderCart(){
   if (!cart.length) { document.getElementById("cartWrap").innerHTML = `<div class="card empty" style="grid-column:1/-1"><div style="font-size:40px">🛒</div><h2>Your cart is empty</h2><p class="mut">Add offers from the results page.</p><button class="btn pri" onclick="go('results')">Browse results</button></div>`; return; }
   document.getElementById("cartWrap").innerHTML = `<div>${Object.entries(g).map(([s, arr]) => `
     <div class="card store-g"><div class="gh"><span class="row">${dot(s)}<b>${STORES[s].name}</b></span><span class="sm mut">Shipping: ${arr[0].o.ship == null ? "shown at store" : arr[0].o.ship ? kr(arr[0].o.ship) : "free"}</span></div>
-    ${arr.map(({c,o}) => `<div class="li"><div class="thumb tab">${o.emoji}</div><div><a href="#offer/${o.id}"><b>${o.title}</b></a><div class="xs">${trustPill(o.trust)} ${o.promo ? `<span class="pill promo">${o.promo}</span>` : ""}</div></div>
+    ${arr.map(({c,o}) => `<div class="li">${pimg(o,"padding:6px")}<div><a href="#offer/${o.id}"><b>${o.title}</b></a><div class="xs">${trustPill(o.trust)} ${o.promo ? `<span class="pill promo">${o.promo}</span>` : ""}</div></div>
       <div class="qty"><button onclick="setQty('${c.id}',-1)">−</button><span>${c.qty}</span><button onclick="setQty('${c.id}',1)">+</button></div><b style="min-width:70px;text-align:right">${kr(lineTotal(c))}</b></div>`).join("")}</div>`).join("")}
     <button class="btn" onclick="go('results')">← Keep shopping</button></div>
   <div class="card pad" style="position:sticky;top:120px"><h2>Order summary</h2><table class="sum" style="width:100%">
@@ -507,7 +586,7 @@ function renderCart(){
 }
 function renderMini(){ const t = totals();
   document.getElementById("miniB").innerHTML = cart.length ? cart.map(c => { const o = OFFERS.find(x => x.id === c.id);
-    return `<div class="vr"><div class="thumb tab" style="width:48px;font-size:20px">${o.emoji}</div><div style="flex:1"><div class="sm"><b>${STORES[o.store].name}</b></div><div class="xs mut">${o.title}</div><div class="xs">${c.qty} st · ${kr(lineTotal(c))}</div></div></div>`; }).join("") : `<p class="mut">Your cart is empty.</p>`;
+    return `<div class="vr">${pimg(o,"width:52px;padding:4px")}<div style="flex:1"><div class="sm"><b>${STORES[o.store].name}</b></div><div class="xs mut">${o.title}</div><div class="xs">${c.qty} st · ${kr(lineTotal(c))}</div></div></div>`; }).join("") : `<p class="mut">Your cart is empty.</p>`;
   document.getElementById("miniT").textContent = kr(t.items + t.ship) + (t.unknown ? " + shipping" : ""); }
 function openMini(){ renderMini(); document.getElementById("mini").classList.add("on"); document.getElementById("scrim").classList.add("on"); }
 function closeMini(){ document.getElementById("mini").classList.remove("on"); document.getElementById("scrim").classList.remove("on"); }

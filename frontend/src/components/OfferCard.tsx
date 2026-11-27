@@ -66,6 +66,11 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
                 Best deal
               </span>
             ) : null}
+            {rank === null && !provisional ? (
+              <span className="text-muted">
+                Not ranked · {offer.unranked_reason ?? (offer.shipping_sek === null ? "shipping not shown" : "excluded")}
+              </span>
+            ) : null}
           </p>
           <h3 id={titleId} className="mt-0.5 text-base leading-snug font-semibold break-words">
             {offer.title}

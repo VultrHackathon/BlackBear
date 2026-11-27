@@ -86,6 +86,7 @@ def offer_out(hunt_id, d):
         "effective_unit_sek": d["your_unit_price"], "screenshot_url": shot_url(hunt_id, shot),
         "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "trust": trust_out(d),
+        **({"unranked_reason": d["unranked_reason"]} if d.get("unranked_reason") else {}),
     }
 
 

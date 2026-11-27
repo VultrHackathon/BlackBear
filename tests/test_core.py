@@ -157,3 +157,28 @@ def test_contract_translation():
         "kind": "action_blocked", "store": "trapshop", "detail": "checkout is not allowed", "severity": "high"}}})
     assert sec[0]["layer"] == "action_firewall" and sec[0]["kind"] == "checkout_attempt"
     assert contract.parse_memberships(["Stammis (Apotek Hjärtat)", "Bogus"]) == ["Stammis"]
+
+
+def test_cart_total_that_includes_shipping_is_split():
+    # Kronans case from a live hunt: cart showed 87 kr = 2 x 34 kr + 19 kr shipping.
+    r = {"store": "kronans", "store_name": "Kronans Apotek", "offer": {"unit_price": 34, "shipping": {"fee": None}},
+         "cart": {"quantity": 2, "total": 87, "shipping": 19}}
+    d = dealmath.compute_deal(r, 2, [])
+    assert d["audit"]["label"] == "verified" and d["cart_total"] == 68
+    assert d["shipping"] == 19 and d["your_total"] == 87
+    assert any("including 19 kr shipping" in f for f in d["audit"]["findings"])
+    # a real overcharge is still caught
+    r["cart"]["total"] = 95
+    assert dealmath.compute_deal(r, 2, [])["audit"]["label"] == "mismatch"
+
+
+def test_unranked_offers_are_grouped():
+    known = dealmath.compute_deal({"store": "apotea", "store_name": "Apotea", "offer": {"unit_price": 40, "shipping": {"fee": 0}},
+                                   "cart": {"total": 80}}, 2, [])
+    pending = dealmath.compute_deal({"store": "apoteket", "store_name": "Apoteket", "offer": {"unit_price": 30},
+                                     "cart": {"total": 60}}, 2, [])
+    bad = dealmath.compute_deal(hjartat_result(cart_total=99), 2, [])
+    ranked = dealmath.rank([bad, pending, known])
+    assert [d["store"] for d in ranked] == ["apotea", "apoteket", "apotekhjartat"]
+    assert ranked[0]["rank"] == 1 and "unranked_reason" not in ranked[0]
+    assert ranked[1]["unranked_reason"] == "shipping not shown" and ranked[2]["unranked_reason"] == "cart mismatch"

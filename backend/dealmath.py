@@ -89,6 +89,24 @@ def shipping_for(items_total, shipping, *, cart=None, quantity=None):
     return fee, "fee"
 
 
+def normalize_cart(cart, unit, rules, quantity):
+    """Some carts (and scouts) report a total that already includes shipping, e.g.
+    87 kr = 68 kr items + 19 kr shipping. When total - shipping matches a price code
+    can explain and the raw total does not, split it into items total + shipping."""
+    cart = dict(cart or {})
+    total, fee = num(cart.get("total")), num(cart.get("shipping"))
+    if total is None or fee is None or fee <= 0:
+        return cart
+    cq = num(cart.get("quantity"))
+    q = int(cq) if cq and cq > 0 else quantity
+    candidates = [q * unit] + [apply_rule(r, q, unit) for r in rules]
+    explains = lambda t: any(abs(t - c) <= 0.5 for c in candidates)  # noqa: E731
+    if not explains(total) and explains(total - fee):
+        cart["total_incl_shipping"] = total
+        cart["total"] = r2(total - fee)
+    return cart
+
+
 def r2(x):
     return None if x is None else round(x + 1e-9, 2)
 
@@ -122,7 +140,7 @@ def compute_deal(result, quantity, memberships):
             your_items, applied_you = total, rule
     if guest_items < your_items:
         your_items, applied_you = guest_items, applied_guest
-    cart = result.get("cart")
+    cart = normalize_cart(result.get("cart"), unit, rules, quantity)
     ship_you, ship_note = shipping_for(your_items, offer.get("shipping"), cart=cart, quantity=quantity)
     ship_guest, _ = shipping_for(guest_items, offer.get("shipping"), cart=cart, quantity=quantity)
     deal = {
@@ -152,7 +170,7 @@ def compute_deal(result, quantity, memberships):
 
     deal["cart_promo_applied"] = (result.get("cart") or {}).get("promo_applied")
     deal["_guest_for"], deal["_member_for"] = guest_for, member_for
-    deal["audit"] = audit(deal, result.get("cart"))
+    deal["audit"] = audit(deal, cart)
     deal.pop("_guest_for"); deal.pop("_member_for")
     return deal
 
@@ -174,6 +192,9 @@ def audit(deal, cart):
         expected_member = deal["_member_for"](q) if "_member_for" in deal else deal.get("member_items_total")
         if q != deal["quantity"]:
             findings.append(f"Cart held {q} instead of {deal['quantity']}; checked against the price for {q}.")
+        if cart.get("total_incl_shipping") is not None:
+            findings.append(f"Cart showed {cart['total_incl_shipping']:g} kr including "
+                            f"{num(cart.get('shipping')):g} kr shipping.")
         if abs(cart_total - expected_guest) <= 0.5:
             findings.append(f"Guest cart total {cart_total:g} kr matches the computed guest price.")
             if deal.get("member_promo"):
@@ -202,17 +223,27 @@ def audit(deal, cart):
 
 def rank(deals):
     order = {"verified": 0, "questionable": 1, "unverified": 1, "mismatch": 3}
-    usable, rest = [], []
+    usable, pending, rest = [], [], []
     for deal in deals:
         if not deal:
             continue
         deal.pop("rank", None)
-        if deal.get("shipping") is None or deal["audit"]["label"] == "mismatch" or deal.get("in_stock") is False:
+        deal.pop("unranked_reason", None)
+        if deal["audit"]["label"] == "mismatch":
+            deal["unranked_reason"] = "cart mismatch"
             rest.append(deal)
+        elif deal.get("in_stock") is False:
+            deal["unranked_reason"] = "out of stock"
+            rest.append(deal)
+        elif deal.get("shipping") is None:
+            # visible as item subtotals right after the ranked offers, never ranked above them
+            deal["unranked_reason"] = "shipping not shown"
+            pending.append(deal)
         else:
             usable.append(deal)
+    pending.sort(key=lambda d: (d["your_total"], order.get(d["audit"]["label"], 2)))
 
     usable.sort(key=lambda d: (d["your_total"], order.get(d["audit"]["label"], 2)))
     for i, deal in enumerate(usable, 1):
         deal["rank"] = i
-    return usable + rest
+    return usable + pending + rest

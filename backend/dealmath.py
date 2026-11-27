@@ -71,13 +71,21 @@ def apply_rule(rule, qty, unit):
     return qty * unit
 
 
-def shipping_for(items_total, shipping):
+def shipping_for(items_total, shipping, *, cart=None, quantity=None):
+    cart = cart or {}
+    cart_fee = num(cart.get("shipping"))
+    cart_total = num(cart.get("total"))
+    # The guest cart quote applies only to the same quantity and merchandise total.
+    if (cart_fee is not None and cart_fee >= 0 and num(cart.get("quantity")) == quantity
+            and quantity is not None and r2(cart_total) == r2(items_total)):
+        return cart_fee, "cart fee"
+
     shipping = shipping or {}
     fee, free_over = num(shipping.get("fee")), num(shipping.get("free_over"))
-    if fee is None:
-        return 0.0, "unknown (not included)"
     if free_over is not None and items_total >= free_over:
         return 0.0, f"free over {free_over:g} kr"
+    if fee is None or fee < 0:
+        return 0.0, "unknown (not included)"
     return fee, "fee"
 
 
@@ -114,8 +122,9 @@ def compute_deal(result, quantity, memberships):
             your_items, applied_you = total, rule
     if guest_items < your_items:
         your_items, applied_you = guest_items, applied_guest
-    ship_you, ship_note = shipping_for(your_items, offer.get("shipping"))
-    ship_guest, _ = shipping_for(guest_items, offer.get("shipping"))
+    cart = result.get("cart")
+    ship_you, ship_note = shipping_for(your_items, offer.get("shipping"), cart=cart, quantity=quantity)
+    ship_guest, _ = shipping_for(guest_items, offer.get("shipping"), cart=cart, quantity=quantity)
     deal = {
         "store": sid, "store_name": result.get("store_name"), "product_name": offer.get("product_name"),
         "size": offer.get("size"), "product_url": offer.get("product_url"), "quantity": quantity,
@@ -193,9 +202,17 @@ def audit(deal, cart):
 
 def rank(deals):
     order = {"verified": 0, "questionable": 1, "unverified": 1, "mismatch": 3}
-    usable = [d for d in deals if d and d["audit"]["label"] != "mismatch" and d.get("in_stock") is not False]
+    usable, rest = [], []
+    for deal in deals:
+        if not deal:
+            continue
+        deal.pop("rank", None)
+        if deal.get("shipping") is None or deal["audit"]["label"] == "mismatch" or deal.get("in_stock") is False:
+            rest.append(deal)
+        else:
+            usable.append(deal)
+
     usable.sort(key=lambda d: (d["your_total"], order.get(d["audit"]["label"], 2)))
-    for i, d in enumerate(usable, 1):
-        d["rank"] = i
-    rest = [d for d in deals if d and d not in usable]
+    for i, deal in enumerate(usable, 1):
+        deal["rank"] = i
     return usable + rest

@@ -80,7 +80,7 @@ def offer_out(hunt_id, d):
         "title": d.get("product_name") or "", "url": d.get("product_url") or "",
         "price_sek": d["unit_price"], "previous_price_sek": d.get("was_price"),
         "lowest_30d_price_sek": d.get("lowest_30d_price"),
-        "shipping_sek": d.get("shipping") or 0, "in_stock": d.get("in_stock") is not False,
+        "shipping_sek": d.get("shipping"), "in_stock": d.get("in_stock") is not False,
         "promos": [promo_out(r, applied) for r in d.get("rules", [])],
         "quantity": d["quantity"], "effective_total_sek": d["your_total"],
         "effective_unit_sek": d["your_unit_price"], "screenshot_url": shot_url(hunt_id, shot),

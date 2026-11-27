@@ -49,6 +49,7 @@ class Scoreboard:
                        "approvals_requested": 0, "approvals_denied": 0}
         self.events = []
         self._seen = set()
+        self._third_party = {}  # store -> blocked third-party hosts (summarised once per store)
 
     async def record(self, kind, store, detail, severity="info"):
         ev = {"kind": kind, "store": store, "detail": detail, "severity": severity}
@@ -74,7 +75,20 @@ class Scoreboard:
         else:
             self.counts["egress_blocked"] += 1
             sev = "medium"
+        if sev != "high" and "exfil" not in host:
+            # Ordinary third-party requests (trackers, chat widgets, CDNs) are blocked silently
+            # and summarised once per store; only real attacks are reported one by one.
+            self._third_party.setdefault(store, []).append(host)
+            return
         await self.record("egress_blocked", store, f"{host}: {reason}", sev)
+
+    async def summarize_third_party(self, store):
+        hosts = self._third_party.pop(store, [])
+        if hosts:
+            shown = ", ".join(hosts[:5]) + (f" and {len(hosts) - 5} more" if len(hosts) > 5 else "")
+            await self.record("third_party_summary", store,
+                              f"{len(hosts)} third-party requests blocked (trackers, chat widgets, other sites): {shown}",
+                              "low")
 
 
 def check_action(store_id, action, elements):

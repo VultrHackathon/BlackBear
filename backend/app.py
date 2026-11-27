@@ -17,7 +17,7 @@ app = FastAPI(title="BlackBear", version="0.1")
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
-MAX_ACTIVE = 2
+MAX_IN_FLIGHT = 12  # hunts planning, queued or running; 2 run sandboxes at once, the rest wait in line
 
 
 class HuntIn(BaseModel):
@@ -51,9 +51,9 @@ async def list_stores():
 
 @app.post("/api/hunts")
 async def create_hunt(body: HuntIn):
-    active = [h for h in engine.HUNTS.values() if h.status not in ("done", "error")]
-    if len(active) >= MAX_ACTIVE:
-        raise HTTPException(429, "Too many hunts running, try again in a minute.")
+    in_flight = [h for h in engine.HUNTS.values() if h.status not in ("done", "error")]
+    if len(in_flight) >= MAX_IN_FLIGHT:
+        raise HTTPException(429, "BlackBear is very busy right now. Please try again in a few minutes.")
     ms = contract.parse_memberships(body.memberships)
     sids = [s for s in body.store_ids if s in stores.STORES]
     trap = body.include_trap or "trapshop" in sids

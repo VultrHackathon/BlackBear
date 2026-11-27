@@ -9,6 +9,16 @@ from . import compare, config, contract, dealmath, dispatcher, guard, llm, match
 
 
 APPROVAL_TIMEOUT_S = 60  # unanswered approvals are denied
+MAX_ACTIVE_HUNTS = 2     # hunts running sandboxes at the same time; the rest wait in line
+_slots: asyncio.Semaphore | None = None
+_waiting = 0
+
+
+def slots() -> asyncio.Semaphore:
+    global _slots
+    if _slots is None:
+        _slots = asyncio.Semaphore(MAX_ACTIVE_HUNTS)
+    return _slots
 
 
 class Hunt:
@@ -84,6 +94,29 @@ class Hunt:
                 self.status = "awaiting_approval"
                 await self.emit("status", {"status": "awaiting_approval", "message": "Approve the plan to start"})
             await asyncio.wait_for(self.approved.wait(), 600)
+            # Only hunts that run sandboxes take a slot; plans waiting for approval never do.
+            global _waiting
+            if slots().locked():
+                self.status = "queued"
+                await self.emit("status", {"status": "queued", "message":
+                                           f"All sandbox slots are busy; waiting for a free slot ({_waiting + 1} in line)"})
+            _waiting += 1
+            try:
+                await slots().acquire()
+            finally:
+                _waiting -= 1
+            try:
+                await self._hunt()
+            finally:
+                slots().release()
+        except Exception as e:
+            self.status = "error"
+            await self.emit("status", {"status": "error", "message": f"{type(e).__name__}: {e}",
+                                       "trace": traceback.format_exc()[-1500:]})
+
+    async def _hunt(self):
+        """Steps 3-10, holding a sandbox slot."""
+        try:
             await self.emit("status", {"status": "hunting", "message": "Plan approved, dispatching sandboxes"})
             self.status = "hunting"
 
@@ -127,10 +160,8 @@ class Hunt:
             self.status = "done"
             await self.emit("result", self.result)
             await self.emit("status", {"status": "done", "message": "Hunt finished"})
-        except Exception as e:
-            self.status = "error"
-            await self.emit("status", {"status": "error", "message": f"{type(e).__name__}: {e}",
-                                       "trace": traceback.format_exc()[-1500:]})
+        finally:
+            pass
 
     async def _scout(self, store, mode, start_url=None, honest=False):
         sid = store["id"]
@@ -165,6 +196,7 @@ class Hunt:
                    "offer": None, "cart": None, "evidence": {}, "mode": mode}
         finally:
             await sb.destroy()
+            await self.score.summarize_third_party(sid)
             if sb.id in self._sb_open:
                 self._sb_done += time.time() - self._sb_open.pop(sb.id)
             self.score.counts["sandboxes_destroyed"] += 1
@@ -255,8 +287,10 @@ class Hunt:
             deal["audit"]["findings"].append(
                 f"Price changed on re-check: {deal['unit_price']:g} kr -> {d2['unit_price']:g} kr.")
         else:
+            def kr(x):
+                return "not read" if x is None else f"{x:g} kr"
             deal["audit"]["findings"].append(
-                f"Cart total changed on re-check: {deal['cart_total']:g} kr -> {d2['cart_total']:g} kr.")
+                f"Cart total changed on re-check: {kr(deal.get('cart_total'))} -> {kr(d2.get('cart_total'))}.")
         if deal["audit"]["label"] == "verified":
             deal["audit"]["label"] = "questionable"
         return {"status": "changed", "unit_price": d2["unit_price"], "cart_total": d2.get("cart_total"),

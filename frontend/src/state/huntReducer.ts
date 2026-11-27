@@ -355,7 +355,7 @@ function applyEvent(state: HuntState, e: HuntEvent, at: number): HuntState {
       };
       const next: HuntState = { ...s, security: [entry, ...s.security].slice(0, MAX_SECURITY_EVENTS) };
       const run = next.stores[e.store_id];
-      if (!run) return next;
+      if (!run || e.kind === "third_party_request") return next; // routine, not an alert
       return withRun(next, {
         ...run,
         alert: nextAlert(run, at, e.detail, { kind: e.kind, layer: e.layer, blocked: e.blocked }),

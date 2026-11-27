@@ -92,6 +92,8 @@ function deriveThread(s: HuntState): Msg[] {
 
   // The security log keeps newest first; the conversation reads oldest first.
   for (const e of [...s.security].reverse()) {
+    // Ordinary third-party blocks (trackers, widgets) live on the Safety page, not in the chat.
+    if (e.kind === "third_party_request") continue;
     out.push({
       id: `sec-${h}-${e.key}`,
       kind: "security",

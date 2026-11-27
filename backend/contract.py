@@ -119,6 +119,9 @@ def security_out(ev):
     if kind == "explanation_rejected":
         return {"store_id": store, "kind": "unverified_number", "layer": "number_check", "detail": detail,
                 "blocked": True}
+    if kind == "third_party_summary":
+        return {"store_id": store, "kind": "third_party_request", "layer": "egress_proxy", "detail": detail,
+                "blocked": True}
     if kind == "approval_gate":
         denied = detail.startswith("denied")
         return {"store_id": store, "kind": "checkout_attempt", "layer": "approval_gate", "detail": detail,
@@ -136,6 +139,10 @@ def translate(hunt, ev):
         s = d.get("status")
         if s == "planning":
             out.append({"type": "hunt.started", "hunt_id": hunt.id, "query": hunt.query})
+        elif s == "queued":
+            for st in (hunt.plan or {}).get("stores", []):
+                out.append({"type": "store.status", "store_id": st["id"], "status": "queued",
+                            "message": d.get("message", "Waiting for a free slot")})
         elif s == "done":
             out.append({"type": "hunt.done", "elapsed_s": round(ev["t"], 1)})
         elif s == "error":

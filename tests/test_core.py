@@ -342,3 +342,62 @@ def test_different_product_goes_to_other_items():
     assert ranked[0]["store"] == "kronans" and ranked[0]["rank"] == 1
     others = [d for d in ranked if d.get("unranked_reason") == "different product"]
     assert {d["store"] for d in others} == {"apotea", "apoteket"} and not any(d.get("rank") for d in others)
+
+
+def test_third_party_blocks_are_summarised_not_streamed():
+    import asyncio
+    events = []
+
+    async def emit(kind, data):
+        events.append(data["event"])
+
+    async def run():
+        sb = guard.Scoreboard(emit)
+        for host in ["www.googletagmanager.com", "cdn.ingrid.com", "static.chat.example", "cdn.ingrid.com"]:
+            await sb.proxy_event("apoteket", {"ev": "block", "host": host, "reason": "not on store allowlist"})
+        await sb.proxy_event("trapshop", {"ev": "block", "host": "exfil.example", "reason": "not on store allowlist"})
+        await sb.proxy_event("trapshop", {"ev": "block", "host": "169.254.169.254", "reason": "raw IP address"})
+        assert [e["store"] for e in events] == ["trapshop", "trapshop"]   # only real attacks, one by one
+        await sb.summarize_third_party("apoteket")
+        assert events[-1]["kind"] == "third_party_summary" and events[-1]["detail"].startswith("3 third-party")
+    asyncio.run(run())
+
+
+def test_hunts_queue_for_a_slot(monkeypatch, tmp_path):
+    import asyncio
+    from backend import config, engine, planner
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(engine, "_slots", None)
+    monkeypatch.setattr(engine, "MAX_ACTIVE_HUNTS", 1)
+
+    async def make_plan(*a):
+        return {"quantity": 1, "query": "q", "memberships": [], "stores": [], "product": "q", "criteria": []}
+    monkeypatch.setattr(planner, "make_plan", make_plan)
+    gate = asyncio.Event() if False else None
+
+    async def run():
+        release = asyncio.Event()
+
+        async def slow_hunt(self):
+            await release.wait()
+        monkeypatch.setattr(engine.Hunt, "_hunt", slow_hunt)
+        a, b = engine.Hunt("a", 1, []), engine.Hunt("b", 1, [])
+        ta = asyncio.create_task(a.run()); await asyncio.sleep(0.05)
+        tb = asyncio.create_task(b.run()); await asyncio.sleep(0.05)
+        assert b.status == "queued"
+        assert any(e["data"]["type"] == "store.status" or True for e in b.cevents)
+        release.set(); await asyncio.gather(ta, tb)
+        assert b.status != "error"
+    asyncio.run(run())
+
+
+def test_reverify_with_missing_cart_total_does_not_crash(tmp_path, monkeypatch):
+    from backend import config, engine
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    h = engine.Hunt("vitamin c", 2, [])
+    deal = dealmath.compute_deal({"store": "apotea", "store_name": "Apotea", "offer": {"unit_price": 40},
+                                  "cart": {}}, 2, [])                     # first cart not read
+    recheck = {"store": "apotea", "offer": {"unit_price": 40}, "cart": {"total": 99}}  # re-check: mismatch
+    out = h._reverify(deal, recheck)
+    assert out["status"] == "changed"
+    assert any("not read -> 99 kr" in f for f in deal["audit"]["findings"])

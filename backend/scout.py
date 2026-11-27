@@ -124,7 +124,8 @@ class Scout:
                                      "blocked_reason": why, "screenshot": shot, "approved": approved})
             if not ok:
                 self.score.counts["actions_blocked"] += 1
-                await self.score.record("action_blocked", sid, why, "high")
+                if approved is None:  # a denied gate is already logged by the approval gate
+                    await self.score.record("action_blocked", sid, why, "high")
         # Defence in depth: skip the action firewall and drive the sandboxed browser directly.
         n = len(attacks) + 2
         a = {"action": "goto", "url": "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
@@ -172,7 +173,8 @@ class Scout:
                                      "blocked_reason": why, "screenshot": shot, "approved": approved})
             if not ok:
                 self.score.counts["actions_blocked"] += 1
-                await self.score.record("action_blocked", sid, why, "high")
+                if approved is None:  # a denied gate is already logged by the approval gate
+                    await self.score.record("action_blocked", sid, why, "high")
                 self.history.append({"step": step, "action": decision, "result": f"BLOCKED by guard: {why}"})
                 continue
 

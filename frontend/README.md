@@ -128,7 +128,7 @@ hunt.done       {elapsed_s}
 error           {message}
 ```
 
-`Promo`, `Trust` and `Offer` are defined in [src/types.ts](src/types.ts), mirroring the backend models.
+`Promo`, `Trust` and `Offer` are defined in [src/types.ts](src/types.ts), mirroring the backend models. A null shipping fee means the total is provisional and the numeric amount is the item subtotal. An empty comparison winner ID means neither offer was eligible.
 
 How the UI interprets the stream:
 

@@ -46,6 +46,53 @@ def test_shipping_and_rank():
     assert ranked[0]["store"] == "apotea" and ranked[1]["your_total"] == 99
 
 
+def test_cart_shipping_wins_over_the_product_page_fee_for_the_same_basket():
+    r = hjartat_result()
+    r["offer"]["shipping"]["fee"] = 49
+    r["cart"]["shipping"] = 12
+
+    guest = dealmath.compute_deal(r, 2, [])
+    assert guest["shipping"] == 12 and guest["your_total"] == 82
+
+    member = dealmath.compute_deal(r, 2, ["Stammis"])
+    assert member["shipping"] == 49 and member["your_total"] == 98
+
+    r["offer"]["shipping"]["fee"] = None
+    assert dealmath.compute_deal(r, 2, [])["your_total"] == 82
+
+    r["cart"].update(quantity=1, total=35)
+    assert dealmath.compute_deal(r, 2, [])["shipping"] is None
+
+
+def test_free_shipping_requires_a_quote_or_a_met_threshold():
+    assert dealmath.shipping_for(100, {"free_over": 100})[0] == 0
+    assert dealmath.shipping_for(99, {"free_over": 100})[1].startswith("unknown")
+    assert dealmath.shipping_for(100, {}, cart={"quantity": 1, "total": 100, "shipping": 0},
+                                 quantity=1) == (0, "cart fee")
+
+
+def test_unknown_shipping_cannot_win_or_keep_a_previous_rank():
+    r = hjartat_result()
+    cheap = dealmath.compute_deal(r, 2, [])
+    r["offer"]["shipping"]["fee"] = 5
+    complete = dealmath.compute_deal(r, 2, [])
+
+    # A formerly eligible offer can lose its rank after being checked again.
+    cheap["rank"] = 1
+    ranked = dealmath.rank([cheap, complete])
+    assert ranked == [complete, cheap]
+    assert complete["rank"] == 1 and complete["your_total"] == 75
+    assert "rank" not in cheap and cheap["your_total"] == 70
+
+    assert dealmath.rank([cheap]) == [cheap]
+    assert "rank" not in cheap
+    assert "No offer could be ranked" in compare.fallback([cheap], {})
+
+    incomplete = compare._slim(cheap)
+    assert incomplete["your_items_total"] == 70 and incomplete["shipping_pending"]
+    assert "your_total" not in incomplete
+
+
 def test_number_check():
     deals = [dealmath.compute_deal(hjartat_result(), 2, [])]
     plan = {"quantity": 2, "query": "2 bags of Hjärtats saffran 0,5 g", "size": "0,5 g", "product": "Hjärtats saffran",
@@ -102,6 +149,7 @@ def test_contract_translation():
     offer = evs[0]["offer"]
     assert evs[0]["type"] == "offer.found" and offer["id"] == "abcdef0123-apotekhjartat"
     assert offer["effective_total_sek"] == 70 and offer["promos"][0]["requires_membership"] == "Stammis"
+    assert offer["shipping_sek"] is None
     assert offer["promos"][0]["buy"] == 2 and offer["promos"][0]["bundle_price_sek"] == 49
     assert offer["screenshot_url"].startswith("/api/hunts/abcdef0123/evidence/")
     assert evs[1]["trust"]["label"] == "questionable"

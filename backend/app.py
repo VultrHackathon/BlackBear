@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import compare, config, contract, dispatcher, engine, llm, stores
+from . import compare, config, contract, dealmath, dispatcher, engine, llm, stores
 
 app = FastAPI(title="BlackBear", version="0.1")
 ROOT = Path(__file__).resolve().parent.parent
@@ -155,11 +155,11 @@ class CompareIn(BaseModel):
 @app.post("/api/compare")
 async def compare_offers(body: CompareIn):
     ha, a = _find_offer(body.offer_a)
-    hb, b = _find_offer(body.offer_b)
-    pair = sorted([dict(a), dict(b)], key=lambda d: d["your_total"])
-    for i, d in enumerate(pair, 1):
-        d["rank"] = i
-    winner = contract.offer_id(ha.id if pair[0]["store"] == a["store"] else hb.id, pair[0]["store"])
+    _, b = _find_offer(body.offer_b)
+    a, b = dict(a), dict(b)
+    pair = dealmath.rank([a, b])
+    best = pair[0]
+    winner = (body.offer_a if best is a else body.offer_b) if best.get("rank") else ""
 
     def kr(x):
         return "–" if x is None else f"{x:g} kr"
@@ -172,7 +172,9 @@ async def compare_offers(body: CompareIn):
             ("Shipping", kr(a.get("shipping")) if a.get("shipping") is not None else "not shown",
              kr(b.get("shipping")) if b.get("shipping") is not None else "not shown"),
             ("Cart total read", kr(a.get("cart_total")), kr(b.get("cart_total"))),
-            ("You pay", kr(a["your_total"]), kr(b["your_total"])),
+            ("Total incl. shipping",
+             kr(a["your_total"]) if a.get("shipping") is not None else "unknown",
+             kr(b["your_total"]) if b.get("shipping") is not None else "unknown"),
             ("Trust", contract.TRUST[a["audit"]["label"]], contract.TRUST[b["audit"]["label"]])]
     exp = await compare.explain(pair, ha.plan, ha.metrics)
     return {"winner_id": winner, "explanation_md": exp["explanation"],

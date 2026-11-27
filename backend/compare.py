@@ -14,7 +14,8 @@ Explain the ranking to the shopper in 2-4 short sentences, in English.
 Rules:
 - Use ONLY numbers that appear in the data. Never compute, round or estimate new numbers.
 - Write prices like "62 kr" exactly as given.
-- Say which store is cheapest for THIS shopper (your_total), and why.
+- Use only offers with a rank to say which store is cheapest for this shopper (your_total).
+- An offer with shipping_pending has an item subtotal, and its total cost is unknown.
 - Mention member-only promos that the shopper cannot use, and any trust warnings (audit label).
 Output ONLY JSON: {"explanation": "..."}"""
 
@@ -61,6 +62,11 @@ def _slim(d):
             "member_promo", "member_promo_membership", "your_total", "your_unit_price", "applied_promo", "shipping",
             "shipping_note", "cart_total", "reverify"]
     s = {k: d.get(k) for k in keys if d.get(k) is not None}
+    if d.get("shipping") is None:
+        s.pop("your_total", None)
+        s.pop("your_unit_price", None)
+        s["your_items_total"] = d["your_items_total"]
+        s["shipping_pending"] = True
     s["audit"] = d["audit"]
     return s
 
@@ -68,7 +74,7 @@ def _slim(d):
 def fallback(deals, plan):
     ranked = [d for d in deals if d.get("rank")]
     if not ranked:
-        return "No store returned a usable, cart-verified offer for this product."
+        return "No offer could be ranked with the available price and shipping evidence."
     best = ranked[0]
     txt = f"{best['store_name']} is cheapest for you at {best['your_total']:g} kr for {plan['quantity']}."
     for d in deals:
@@ -82,6 +88,9 @@ def fallback(deals, plan):
 
 
 async def explain(deals, plan, metrics):
+    if not any(d.get("rank") for d in deals):
+        return {"explanation": fallback(deals, plan), "source": "code-fallback", "rejected": []}
+
     data = {"shopper": {"quantity": plan["quantity"], "memberships": plan["memberships"] or ["none"]},
             "offers": [_slim(d) for d in deals]}
     allowed = allowed_numbers(data, plan)

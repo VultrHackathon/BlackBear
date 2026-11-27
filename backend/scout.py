@@ -78,6 +78,24 @@ class Scout:
         (self.dir / name).write_bytes(base64.b64decode(page["screenshot"]))
         return name
 
+    async def _save_photo(self):
+        """Product photo from the store page, fetched inside the sandbox, checked by its magic bytes."""
+        try:
+            res = await self.sb.cmd(cmd="product_image", timeout=30)
+        except Exception:
+            return None
+        data = res.get("image")
+        if not data:
+            return None
+        raw = base64.b64decode(data)
+        ext = ("jpg" if raw[:3] == b"\xff\xd8\xff" else "png" if raw[:8] == b"\x89PNG\r\n\x1a\n"
+               else "webp" if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP" else None)
+        if not ext:
+            return None  # not really an image: never serve it
+        name = f"{self.mode}-{self.store['id']}-photo.{ext}"
+        (self.dir / name).write_bytes(raw)
+        return name
+
     async def retry(self, step, why):
         """Make a retry visible in the dashboard's execution loop."""
         await self.emit("step", {"store": self.store["id"], "mode": self.mode, "step": step, "allowed": True,
@@ -191,6 +209,9 @@ class Scout:
                 self.offer = decision.get("offer") or {}
                 self.offer["product_url"] = page.get("url")
                 self.evidence["product"] = shot
+                photo = await self._save_photo()
+                if photo:
+                    self.evidence["photo"] = photo
                 self.history.append({"step": step, "action": "extract", "result": "offer recorded"})
                 await self.emit("offer_seen", {"store": sid, "mode": self.mode, "offer": self.offer, "screenshot": shot})
                 continue

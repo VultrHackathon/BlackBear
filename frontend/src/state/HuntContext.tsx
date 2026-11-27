@@ -91,6 +91,11 @@ export function HuntProvider({ children }: { children: ReactNode }) {
     close = api.subscribe(huntId, cursor, {
       onEvent: (event) => {
         dispatch({ type: "stream/event", huntId, event, at: Date.now() });
+        if (event.type === "security.event") {
+          // Kept out of the chat on purpose; developers and judges can follow them here.
+          const log = event.blocked ? console.info : console.warn;
+          log(`[blackbear security] ${event.kind} at ${event.store_id}: ${event.blocked ? "stopped by" : "got past"} ${event.layer}. ${event.detail}`);
+        }
         if (event.type === "hunt.done" || event.type === "error") {
           // Terminal: close so EventSource doesn't auto-reconnect forever.
           finished = true;

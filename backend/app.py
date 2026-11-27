@@ -237,12 +237,13 @@ async def events(hid: str, since: int = 0):
 
 @app.get("/api/hunts/{hid}/evidence/{name}")
 async def evidence(hid: str, name: str):
-    if not re.fullmatch(r"[a-z0-9]{10}", hid) or not re.fullmatch(r"[\w.-]+\.jpg", name):
+    if not re.fullmatch(r"[a-z0-9]{10}", hid) or not re.fullmatch(r"[\w-]+\.(jpg|png|webp)", name):
         _404()
     p = config.DATA_DIR / "hunts" / hid / name
     if not p.exists():
         _404()
-    return FileResponse(p, media_type="image/jpeg")
+    media = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[name.rsplit(".", 1)[1]]
+    return FileResponse(p, media_type=media, headers={"X-Content-Type-Options": "nosniff"})
 
 
 def _404():

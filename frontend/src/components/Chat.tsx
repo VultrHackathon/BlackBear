@@ -2,7 +2,6 @@ import { ArrowRight, ArrowUp, Plus, ShieldCheck, ShieldExclamationPoint, Trophy,
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { deliveryChangesWinner, itemsTotal, membershipBeatsBest, rankedOffers } from "../lib/deals";
 import { formatSek } from "../lib/format";
-import { kindLabel, layerLabel } from "../lib/labels";
 import { hasMembership } from "../lib/membership";
 import { navigate } from "../lib/router";
 import { useHuntActions, useHuntState } from "../state/HuntContext";
@@ -91,17 +90,8 @@ function deriveThread(s: HuntState): Msg[] {
   }
 
   // The security log keeps newest first; the conversation reads oldest first.
-  for (const e of [...s.security].reverse()) {
-    // Ordinary third-party blocks (trackers, widgets) live on the Safety page, not in the chat.
-    if (e.kind === "third_party_request") continue;
-    out.push({
-      id: `sec-${h}-${e.key}`,
-      kind: "security",
-      what: `${kindLabel(e.kind)} at ${nameOf(e.store_id)}`,
-      layer: layerLabel(e.layer),
-      blocked: e.blocked,
-    });
-  }
+  // Security events stay out of the conversation: they are on the Safety page and in the
+  // browser console (logged in HuntContext as they arrive).
 
   if (s.phase === "error" && s.error) {
     out.push({ id: `err-${h}`, kind: "agent", text: `Something went wrong: ${s.error}` });

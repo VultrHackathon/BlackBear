@@ -111,6 +111,8 @@ def main():
                     page.go_back(wait_until="domcontentloaded")
                     settle(page)
                     reply({"ok": True})
+                elif c == "product_image":
+                    reply({"ok": True, **product_image(page)})
                 elif c == "close":
                     reply({"ok": True})
                     break
@@ -151,6 +153,36 @@ def settle(page):
         pass
     page.wait_for_timeout(500)
     dismiss_consent(page)
+
+
+PRODUCT_IMAGE_JS = r"""
+() => {
+  const meta = document.querySelector('meta[property="og:image"], meta[name="og:image"], meta[name="twitter:image"]');
+  const cands = [];
+  if (meta && meta.content) cands.push(meta.content);
+  const imgs = [...document.images]
+    .filter(i => i.naturalWidth >= 200 && i.naturalHeight >= 200)
+    .map(i => { const r = i.getBoundingClientRect(); return {s: i.currentSrc || i.src, a: i.naturalWidth * i.naturalHeight, top: r.top + scrollY}; })
+    .filter(x => x.top < 1400 && !/logo|icon|sprite|banner|badge/i.test(x.s))
+    .sort((a, b) => b.a - a.a);
+  for (const x of imgs.slice(0, 3)) cands.push(x.s);
+  return cands.filter(u => /^https?:/.test(u)).map(u => new URL(u, location.href).href);
+}
+"""
+
+
+def product_image(page):
+    """Fetch the product photo through the sandbox's own proxy. Returns base64 bytes or an error."""
+    for url in page.evaluate(PRODUCT_IMAGE_JS)[:4]:
+        try:
+            r = page.request.get(url, timeout=8000)
+            ctype = (r.headers.get("content-type") or "").split(";")[0].strip().lower()
+            body = r.body()
+            if r.ok and ctype in ("image/jpeg", "image/png", "image/webp") and 1000 < len(body) < 3_000_000:
+                return {"image": base64.b64encode(body).decode(), "content_type": ctype, "url": url[:300]}
+        except Exception:
+            continue
+    return {"image": None}
 
 
 def observe(page, with_shot=True):

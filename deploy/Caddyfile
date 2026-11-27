@@ -1,7 +1,18 @@
 # Public HTTPS entry point. Replace the host name with your own domain if you have one.
 70-34-209-197.sslip.io {
 	encode gzip
-	reverse_proxy 127.0.0.1:8000 {
-		flush_interval -1
+
+	# Static e-commerce design mockup (example data). Served by Caddy directly,
+	# so it is available without restarting the API.
+	redir /mockup /mockup/
+	handle_path /mockup/* {
+		root * /opt/app/BlackBear/web/mockup
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8000 {
+			flush_interval -1
+		}
 	}
 }

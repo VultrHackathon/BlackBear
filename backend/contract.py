@@ -102,7 +102,11 @@ def trust_out(d):
 def security_out(ev):
     kind, detail, store = ev["kind"], ev["detail"], ev["store"]
     if kind == "egress_blocked":
-        return {"store_id": store, "kind": "exfiltration", "layer": "egress_proxy", "detail": detail, "blocked": True}
+        # Only real exfiltration / metadata / private-network attempts are attacks; ordinary
+        # third-party requests (trackers, chat widgets, CDNs) are reported as such.
+        sev = ev.get("severity")
+        k = "exfiltration" if (sev == "high" or "exfil" in detail) else "third_party_request"
+        return {"store_id": store, "kind": k, "layer": "egress_proxy", "detail": detail, "blocked": True}
     if kind == "action_blocked":
         k = "checkout_attempt" if re.search(r"checkout|payment|login|account|card|personal", detail) else "redirect"
         return {"store_id": store, "kind": k, "layer": "action_firewall", "detail": detail, "blocked": True}

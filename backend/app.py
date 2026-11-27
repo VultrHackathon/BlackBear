@@ -26,7 +26,7 @@ class HuntIn(BaseModel):
     memberships: list[str] = []
     auto_approve: bool = True
     include_trap: bool = False
-    simulate_compromise: bool = False
+    simulate_compromise: bool | None = None  # default: on when the honeypot is selected (red-team replay)
     budget_sek: float | None = None
     store_ids: list[str] = []
 
@@ -58,7 +58,8 @@ async def create_hunt(body: HuntIn):
     sids = [s for s in body.store_ids if s in stores.STORES]
     trap = body.include_trap or "trapshop" in sids
     h = engine.Hunt(body.query.strip(), body.quantity, ms, body.auto_approve, trap)
-    h.simulate_compromise = trap and body.simulate_compromise
+    h.simulate_compromise = trap and (body.simulate_compromise if body.simulate_compromise is not None
+                                      else "trapshop" in sids)
     h.store_ids = sids
     h.budget_sek = body.budget_sek if body.budget_sek and body.budget_sek > 0 else None
     engine.HUNTS[h.id] = h

@@ -141,6 +141,7 @@ def compute_deal(result, quantity, memberships):
     def member_for(q):
         return min([q * unit] + [apply_rule(r, q, unit) for r in rules])
 
+    deal["cart_promo_applied"] = (result.get("cart") or {}).get("promo_applied")
     deal["_guest_for"], deal["_member_for"] = guest_for, member_for
     deal["audit"] = audit(deal, result.get("cart"))
     deal.pop("_guest_for"); deal.pop("_member_for")

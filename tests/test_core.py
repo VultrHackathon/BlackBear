@@ -86,3 +86,26 @@ def test_cart_with_other_quantity():
     assert "_guest_for" not in d
     r2 = {"store": "apotea", "store_name": "Apotea", "offer": {"unit_price": 34}, "cart": {"total": 34, "quantity": 1}}
     assert dealmath.compute_deal(r2, 2, [])["audit"]["label"] == "verified"
+
+
+def test_contract_translation():
+    from backend import contract
+
+    class H:
+        id, query, deals, result = "abcdef0123", "saffran", [], None
+        def sandbox_seconds(self): return 12.0
+
+    h = H()
+    d = dealmath.compute_deal(hjartat_result(), 2, [])
+    d["evidence"] = {"cart": "hunt-apotekhjartat-09-see.jpg"}
+    evs = contract.translate(h, {"t": 1, "kind": "deal", "data": d})
+    offer = evs[0]["offer"]
+    assert evs[0]["type"] == "offer.found" and offer["id"] == "abcdef0123-apotekhjartat"
+    assert offer["effective_total_sek"] == 70 and offer["promos"][0]["requires_membership"] == "Stammis"
+    assert offer["promos"][0]["buy"] == 2 and offer["promos"][0]["bundle_price_sek"] == 49
+    assert offer["screenshot_url"].startswith("/api/hunts/abcdef0123/evidence/")
+    assert evs[1]["trust"]["label"] == "questionable"
+    sec = contract.translate(h, {"t": 1, "kind": "security", "data": {"event": {
+        "kind": "action_blocked", "store": "trapshop", "detail": "checkout is not allowed", "severity": "high"}}})
+    assert sec[0]["layer"] == "action_firewall" and sec[0]["kind"] == "checkout_attempt"
+    assert contract.parse_memberships(["Stammis (Apotek Hjärtat)", "Bogus"]) == ["Stammis"]

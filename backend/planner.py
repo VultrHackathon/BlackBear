@@ -22,6 +22,24 @@ Rules: pick stores only from the list given. Prefer all stores that plausibly se
 Keep search phrases short (2-4 words). Do not invent prices."""
 
 
+def restrict_stores(plan, store_ids):
+    """Keep only the stores the shopper selected; add selected stores the planner skipped."""
+    wanted = [s for s in store_ids if s in stores.PLANNER_STORES]
+    if not wanted:
+        return plan
+    have = {s["id"]: s for s in plan["stores"]}
+    out = []
+    for sid in wanted:
+        if sid in have:
+            out.append(have[sid])
+        else:
+            st = stores.STORES[sid]
+            out.append({"id": sid, "name": st["name"], "search": plan["product"],
+                        "start_url": st["search_url"].format(q=quote_plus(plan["product"])), "allow": st["allow"]})
+    plan["stores"] = out
+    return plan
+
+
 def add_demo_store(plan, sid="trapshop"):
     st = stores.STORES[sid]
     if sid not in [s["id"] for s in plan["stores"]]:

@@ -4,15 +4,19 @@ import json
 import re
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from datetime import datetime, timezone
+
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import config, dispatcher, engine, llm, stores
+from . import compare, config, contract, dispatcher, engine, llm, stores
 
 app = FastAPI(title="BlackBear", version="0.1")
-WEB = Path(__file__).resolve().parent.parent / "web"
+ROOT = Path(__file__).resolve().parent.parent
+WEB = ROOT / "web"
+FRONTEND_DIST = ROOT / "frontend" / "dist"
 MAX_ACTIVE = 2
 
 
@@ -23,6 +27,8 @@ class HuntIn(BaseModel):
     auto_approve: bool = True
     include_trap: bool = False
     simulate_compromise: bool = False
+    budget_sek: float | None = None
+    store_ids: list[str] = []
 
 
 @app.on_event("startup")
@@ -48,19 +54,23 @@ async def create_hunt(body: HuntIn):
     active = [h for h in engine.HUNTS.values() if h.status not in ("done", "error")]
     if len(active) >= MAX_ACTIVE:
         raise HTTPException(429, "Too many hunts running, try again in a minute.")
-    ms = [m for m in body.memberships if m in stores.ALL_MEMBERSHIPS]
-    h = engine.Hunt(body.query.strip(), body.quantity, ms, body.auto_approve, body.include_trap)
-    h.simulate_compromise = body.include_trap and body.simulate_compromise
+    ms = contract.parse_memberships(body.memberships)
+    sids = [s for s in body.store_ids if s in stores.STORES]
+    trap = body.include_trap or "trapshop" in sids
+    h = engine.Hunt(body.query.strip(), body.quantity, ms, body.auto_approve, trap)
+    h.simulate_compromise = trap and body.simulate_compromise
+    h.store_ids = sids
+    h.budget_sek = body.budget_sek if body.budget_sek and body.budget_sek > 0 else None
     engine.HUNTS[h.id] = h
     asyncio.create_task(h.run())
-    return {"id": h.id}
+    return {"hunt_id": h.id, "id": h.id}
 
 
 @app.post("/api/hunts/{hid}/approve")
 async def approve(hid: str):
     h = engine.HUNTS.get(hid) or _404()
     h.approved.set()
-    return {"ok": True}
+    return Response(status_code=204)
 
 
 @app.get("/api/hunts/{hid}")
@@ -70,7 +80,105 @@ async def get_hunt(hid: str):
             "security": h.score.counts}
 
 
+@app.get("/api/config")
+async def app_config():
+    return contract.app_config()
+
+
 @app.get("/api/hunts/{hid}/events")
+async def contract_events(hid: str, request: Request, last_event_id: str | None = None):
+    """Contract SSE stream (frontend/README.md): ids, Last-Event-ID resume, ping every 15 s."""
+    h = engine.HUNTS.get(hid) or _404()
+    raw = request.headers.get("last-event-id") or last_event_id or "0"
+    after = int(raw) if raw.isdigit() else 0
+    q: asyncio.Queue = asyncio.Queue()
+
+    def fmt(c):
+        return f"id: {c['id']}\ndata: {json.dumps(c['data'], ensure_ascii=False)}\n\n"
+
+    async def gen():
+        h.csubs.add(q)
+        try:
+            sent = after
+            for c in list(h.cevents):
+                if c["id"] > sent:
+                    sent = c["id"]
+                    yield fmt(c)
+            while True:
+                try:
+                    c = await asyncio.wait_for(q.get(), 15)
+                    if c["id"] > sent:
+                        sent = c["id"]
+                        yield fmt(c)
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+        finally:
+            h.csubs.discard(q)
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+def _find_offer(offer_id):
+    hid, _, sid = offer_id.partition("-")
+    h = engine.HUNTS.get(hid)
+    if not h:
+        _404()
+    d = next((x for x in h.deals if x["store"] == sid), None)
+    if not d:
+        _404()
+    return h, d
+
+
+@app.post("/api/offers/{offer_id}/reverify")
+async def reverify_offer(offer_id: str):
+    h, d = _find_offer(offer_id)
+    before = d["unit_price"]
+    try:
+        d = await asyncio.wait_for(h.reverify_offer(d["store"]), config.SANDBOX_TIMEOUT_S + 60)
+    except KeyError:
+        raise HTTPException(409, "This offer has no product page to re-verify.")
+    rv = d.get("reverify") or {}
+    ev = rv.get("evidence") or {}
+    return {"offer_id": offer_id, "same_price": rv.get("status") == "same",
+            "price_sek": rv.get("unit_price") if rv.get("unit_price") is not None else before,
+            "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "screenshot_url": contract.shot_url(h.id, ev.get("cart") or ev.get("product"))}
+
+
+class CompareIn(BaseModel):
+    offer_a: str
+    offer_b: str
+
+
+@app.post("/api/compare")
+async def compare_offers(body: CompareIn):
+    ha, a = _find_offer(body.offer_a)
+    hb, b = _find_offer(body.offer_b)
+    pair = sorted([dict(a), dict(b)], key=lambda d: d["your_total"])
+    for i, d in enumerate(pair, 1):
+        d["rank"] = i
+    winner = contract.offer_id(ha.id if pair[0]["store"] == a["store"] else hb.id, pair[0]["store"])
+
+    def kr(x):
+        return "–" if x is None else f"{x:g} kr"
+
+    rows = [("Store", a["store_name"], b["store_name"]),
+            ("Unit price", kr(a["unit_price"]), kr(b["unit_price"])),
+            ("Quantity", str(a["quantity"]), str(b["quantity"])),
+            ("Promo applied for you", a.get("applied_promo") or "–", b.get("applied_promo") or "–"),
+            ("Member-only price", kr(a.get("member_items_total")), kr(b.get("member_items_total"))),
+            ("Shipping", kr(a.get("shipping")) if a.get("shipping") is not None else "not shown",
+             kr(b.get("shipping")) if b.get("shipping") is not None else "not shown"),
+            ("Cart total read", kr(a.get("cart_total")), kr(b.get("cart_total"))),
+            ("You pay", kr(a["your_total"]), kr(b["your_total"])),
+            ("Trust", contract.TRUST[a["audit"]["label"]], contract.TRUST[b["audit"]["label"]])]
+    exp = await compare.explain(pair, ha.plan, ha.metrics)
+    return {"winner_id": winner, "explanation_md": exp["explanation"],
+            "breakdown": [{"label": l, "a": x, "b": y} for l, x, y in rows]}
+
+
+@app.get("/api/hunts/{hid}/raw-events")
 async def events(hid: str, since: int = 0):
     h = engine.HUNTS.get(hid) or _404()
     q: asyncio.Queue = asyncio.Queue()
@@ -107,4 +215,9 @@ def _404():
     raise HTTPException(404, "not found")
 
 
-app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+app.mount("/trap", StaticFiles(directory=WEB / "trap", html=True), name="trap")
+app.mount("/lite", StaticFiles(directory=WEB, html=True), name="lite")
+if FRONTEND_DIST.exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
+else:
+    app.mount("/", StaticFiles(directory=WEB, html=True), name="web")

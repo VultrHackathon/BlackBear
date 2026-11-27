@@ -126,7 +126,7 @@ function reset() {
 }
 function listen(id) {
   if (es) es.close();
-  es = new EventSource(`/api/hunts/${id}/events`);
+  es = new EventSource(`/api/hunts/${id}/raw-events`);
   es.onmessage = m => handle(JSON.parse(m.data));
 }
 function lane(store, mode) {

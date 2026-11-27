@@ -1,6 +1,7 @@
-import { RotateCw, Scale, ShoppingCart, Sparkles, Trophy, X } from "lucide-react";
+import { RotateCw, Scale, Sparkles, Trophy, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, errorMessage } from "../api/client";
+import { CartControl } from "../components/CartControl";
 import { TrustPill } from "../components/ProductCard";
 import { ProductPhoto } from "../components/ProductPhoto";
 import { SafeMarkdown } from "../components/SafeMarkdown";
@@ -12,7 +13,6 @@ import { formatSek } from "../lib/format";
 import { href } from "../lib/router";
 import { useHuntActions, useHuntState } from "../state/HuntContext";
 import { isHuntActive } from "../state/huntReducer";
-import { useShop } from "../state/ShopContext";
 import type { CompareResponse, Offer } from "../types";
 
 type Explain = { status: "loading" } | { status: "ready"; data: CompareResponse } | { status: "error"; message: string };
@@ -24,7 +24,6 @@ type Explain = { status: "loading" } | { status: "ready"; data: CompareResponse 
 export function ComparePage() {
   const state = useHuntState();
   const { toggleCompare, clearCompare } = useHuntActions();
-  const { addToCart } = useShop();
   const offers = state.compare.map((id) => state.offers[id]).filter((o): o is Offer => !!o);
   const [a, b] = offers;
   const [explain, setExplain] = useState<Explain>({ status: "loading" });
@@ -156,9 +155,7 @@ export function ComparePage() {
               {pair.map((o) => (
                 <td key={o.id} className={`px-4 py-3 ${cell(o)}`}>
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="primary" size="sm" icon={ShoppingCart} onClick={() => addToCart(o, state.config?.stores.find((s) => s.id === o.store_id))}>
-                      Add to cart
-                    </Button>
+                    <CartControl offer={o} />
                     <Button variant="ghost" size="sm" onClick={() => toggleCompare(o.id)}>
                       Remove
                     </Button>

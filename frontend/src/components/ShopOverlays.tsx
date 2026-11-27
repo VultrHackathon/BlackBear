@@ -3,12 +3,13 @@ import { useEffect, useRef } from "react";
 import { formatSek } from "../lib/format";
 import { navigate } from "../lib/router";
 import { cartTotals, useShop } from "../state/ShopContext";
+import { QtyStepper } from "./CartControl";
 import { ProductPhoto } from "./ProductPhoto";
 import { Button } from "./ui";
 
 /** The mini cart: a native modal dialog sliding in from the right. */
 export function MiniCart() {
-  const { cart, miniOpen, setMiniOpen } = useShop();
+  const { cart, miniOpen, setMiniOpen, setQty } = useShop();
   const ref = useRef<HTMLDialogElement>(null);
   const t = cartTotals(cart);
 
@@ -48,9 +49,10 @@ export function MiniCart() {
                   <div className="min-w-0 flex-1 text-sm">
                     <p className="font-semibold">{l.storeName}</p>
                     <p className="line-clamp-1 text-xs text-muted">{l.title}</p>
-                    <p className="text-xs tabular-nums">
-                      {l.qty} st · {formatSek(l.unitItems * l.qty)}
-                    </p>
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <QtyStepper value={l.qty} min={0} label={l.title} onChange={(n) => setQty(l.offerId, n)} />
+                      <b className="text-xs tabular-nums">{formatSek(l.unitItems * l.qty)}</b>
+                    </div>
                   </div>
                 </li>
               ))}

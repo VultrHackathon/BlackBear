@@ -1,5 +1,5 @@
 import { MessagesSquare } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CartProof } from "../components/CartProof";
 import { ProductCard } from "../components/ProductCard";
 import { SandboxStage } from "../components/SandboxStage";
@@ -37,7 +37,7 @@ function FilterChip({ on, onToggle, children }: { on: boolean; onToggle: () => v
 export function ResultsPage() {
   const state = useHuntState();
   const { toggleCompare } = useHuntActions();
-  const { addToCart, includeDelivery, setIncludeDelivery } = useShop();
+  const { includeDelivery, setIncludeDelivery } = useShop();
   const [sort, setSort] = useState<Sort>("best");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [shippingOnly, setShippingOnly] = useState(false);
@@ -57,7 +57,6 @@ export function ResultsPage() {
   const running = isHuntActive(state.phase);
   const counts = selectStatusCounts(state);
   const pending = running ? counts.queued + counts.starting + counts.browsing + counts.extracting + counts.verifying : 0;
-  const onAdd = useCallback((o: Offer) => addToCart(o, storeById.get(o.store_id)), [addToCart, storeById]);
 
   const keep = (o: Offer) =>
     (!verifiedOnly || o.trust?.label === "real") && (!shippingOnly || shippingKnown(o)) && (!inStockOnly || o.in_stock);
@@ -96,7 +95,6 @@ export function ResultsPage() {
       includeDelivery={includeDelivery}
       auditing={running}
       comparing={state.compare.includes(o.id)}
-      onAdd={onAdd}
       onCompare={toggleCompare}
       onProof={setProofId}
     />

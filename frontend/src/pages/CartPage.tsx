@@ -1,5 +1,6 @@
-import { ArrowLeft, ArrowRight, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShoppingCart, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { QtyStepper } from "../components/CartControl";
 import { ProductPhoto } from "../components/ProductPhoto";
 import { Crumbs, PageTitle } from "../components/SiteChrome";
 import { StoreMark } from "../components/StoreMark";
@@ -74,25 +75,7 @@ function Line({ line }: { line: CartLine }) {
         </p>
       </div>
       <div className="col-start-2 flex items-center sm:col-start-auto">
-        <Button
-          size="sm"
-          iconOnly
-          icon={Minus}
-          aria-label={`One fewer ${line.title}`}
-          className="rounded-r-none focus-visible:z-10"
-          onClick={() => setQty(line.offerId, line.qty - 1)}
-        />
-        <span className="grid h-8 w-10 place-items-center border-y bg-surface text-sm font-semibold tabular-nums" aria-label={`Quantity ${line.qty}`}>
-          {line.qty}
-        </span>
-        <Button
-          size="sm"
-          iconOnly
-          icon={Plus}
-          aria-label={`One more ${line.title}`}
-          className="rounded-l-none focus-visible:z-10"
-          onClick={() => setQty(line.offerId, line.qty + 1)}
-        />
+        <QtyStepper value={line.qty} min={1} label={line.title} onChange={(n) => setQty(line.offerId, n)} />
         <Button variant="ghost" size="sm" iconOnly icon={Trash2} aria-label={`Remove ${line.title}`} className="ml-1" onClick={() => removeLine(line.offerId)} />
       </div>
       <p className="col-start-2 text-right font-bold tabular-nums sm:col-start-auto sm:min-w-24">{formatSek(line.unitItems * line.qty)}</p>

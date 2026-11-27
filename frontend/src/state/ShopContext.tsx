@@ -35,7 +35,7 @@ export interface Toast {
 interface Shop {
   cart: CartLine[];
   cartCount: number;
-  addToCart: (offer: Offer, store: { name: string; domain?: string } | undefined) => void;
+  addToCart: (offer: Offer, store: { name: string; domain?: string } | undefined, qty?: number) => void;
   setQty: (offerId: string, qty: number) => void;
   removeLine: (offerId: string) => void;
   miniOpen: boolean;
@@ -63,11 +63,12 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToCart = useCallback<Shop["addToCart"]>(
-    (offer, store) => {
+    (offer, store, qty) => {
+      const n = Math.max(1, Math.min(99, Math.round(qty ?? offer.quantity)));
       const applied = offer.promos.find((p) => p.applied_in_cart === true && p.type !== "free_shipping_over");
       setCart((lines) => {
         const existing = lines.find((l) => l.offerId === offer.id);
-        if (existing) return lines.map((l) => (l === existing ? { ...l, qty: l.qty + offer.quantity } : l));
+        if (existing) return lines.map((l) => (l === existing ? { ...l, qty: Math.min(99, l.qty + n) } : l));
         return [
           ...lines,
           {
@@ -82,11 +83,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
             shipping: offer.shipping_sek,
             trust: offer.trust?.label ?? "unknown",
             promo: applied ? (applied.code ?? applied.text) : undefined,
-            qty: offer.quantity,
+            qty: n,
           },
         ];
       });
-      showToast(`Added ${store?.name ?? offer.store_id} · ${offer.quantity} st`, {
+      showToast(`Added ${n} × ${offer.title} (${store?.name ?? offer.store_id})`, {
         label: "View cart",
         onClick: () => setMiniOpen(true),
       });
@@ -96,7 +97,9 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 
   const setQty = useCallback((offerId: string, qty: number) => {
     setCart((lines) =>
-      qty < 1 ? lines.filter((l) => l.offerId !== offerId) : lines.map((l) => (l.offerId === offerId ? { ...l, qty } : l)),
+      qty < 1
+        ? lines.filter((l) => l.offerId !== offerId)
+        : lines.map((l) => (l.offerId === offerId ? { ...l, qty: Math.min(99, Math.round(qty)) } : l)),
     );
   }, []);
   const removeLine = useCallback((offerId: string) => setCart((lines) => lines.filter((l) => l.offerId !== offerId)), []);

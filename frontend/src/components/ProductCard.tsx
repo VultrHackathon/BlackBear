@@ -1,4 +1,4 @@
-import { Check, Receipt, Scale, ShoppingCart, Trophy } from "lucide-react";
+import { Check, Receipt, Scale, Trophy } from "lucide-react";
 import { memo } from "react";
 import { claimedDiscount, deliveryNote, shippingKnown, shownPrice, unrankedReason } from "../lib/deals";
 import { formatSek } from "../lib/format";
@@ -7,6 +7,7 @@ import type { Offer, StoreConfig } from "../types";
 import { ProductPhoto } from "./ProductPhoto";
 import { StoreMark } from "./StoreMark";
 import { TRUST } from "./trust";
+import { CartControl } from "./CartControl";
 import { Button, Pill, Spinner } from "./ui";
 
 /** The store's claimed discount as a round sticker. A discount judged fake is struck through. */
@@ -73,7 +74,6 @@ export const ProductCard = memo(function ProductCard({
   includeDelivery,
   auditing,
   comparing,
-  onAdd,
   onCompare,
   onProof,
 }: {
@@ -85,7 +85,6 @@ export const ProductCard = memo(function ProductCard({
   includeDelivery: boolean;
   auditing: boolean;
   comparing: boolean;
-  onAdd: (offer: Offer) => void;
   onCompare: (offerId: string) => void;
   /** Opens the cart screenshot for this offer. */
   onProof: (offerId: string) => void;
@@ -158,9 +157,7 @@ export const ProductCard = memo(function ProductCard({
           {unranked ? <p className="mt-1 text-xs text-muted">Not ranked · {unrankedReason(offer)}</p> : null}
         </div>
         <div className="flex gap-2 pt-1">
-          <Button variant="primary" size="sm" icon={ShoppingCart} className="flex-1" onClick={() => onAdd(offer)}>
-            Add to cart
-          </Button>
+          <CartControl offer={offer} className="flex-1" />
           <Button
             size="sm"
             icon={comparing ? Check : Scale}

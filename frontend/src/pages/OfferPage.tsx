@@ -1,5 +1,6 @@
 import { Camera, Check, PackageSearch, Receipt, RefreshCw, Scale, ShieldCheck, ShieldExclamationPoint, ShoppingCart } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
+import { CartControl, QtyStepper } from "../components/CartControl";
 import { CopyText } from "../components/CopyText";
 import { ActionLine } from "../components/Monitor";
 import { DiscountSticker, TrustPill } from "../components/ProductCard";
@@ -34,9 +35,10 @@ const TABS = ["Price check", "Agent log", "Safety"] as const;
 export function OfferPage({ id }: { id: string }) {
   const state = useHuntState();
   const { reverify, toggleCompare } = useHuntActions();
-  const { addToCart, includeDelivery } = useShop();
+  const { addToCart, includeDelivery, cart } = useShop();
   const [viewKey, setViewKey] = useState("photo");
   const [tab, setTab] = useState(0);
+  const [pickQtyRaw, setPickQty] = useState<number | null>(null);
 
   const offer = state.offers[id];
   if (!offer) {
@@ -63,6 +65,8 @@ export function OfferPage({ id }: { id: string }) {
   const hostOk = store?.domain ? hostMatchesDomain(offer.url, store.domain) : false;
   const attacks = state.security.filter((e) => e.store_id === offer.store_id);
   const comparing = state.compare.includes(offer.id);
+  const pickQty = pickQtyRaw ?? offer.quantity;
+  const inCart = cart.some((l) => l.offerId === offer.id);
 
   // The gallery: the photo, then every screenshot we hold for this offer, without repeats.
   const views: View[] = [{ key: "photo", label: "Product", src: null }];
@@ -241,14 +245,21 @@ export function OfferPage({ id }: { id: string }) {
           <p className="mt-2 text-xs text-muted">Worked out by code from the page, then checked against the store's cart.</p>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              icon={ShoppingCart}
-              className="min-w-40 flex-1"
-              onClick={() => addToCart(offer, store)}
-            >
-              Add to cart
-            </Button>
+            {inCart ? (
+              <CartControl offer={offer} size="md" className="min-w-40 flex-1" />
+            ) : (
+              <>
+                <QtyStepper value={pickQty} onChange={setPickQty} label={offer.title} size="md" />
+                <Button
+                  variant="primary"
+                  icon={ShoppingCart}
+                  className="min-w-40 flex-1"
+                  onClick={() => addToCart(offer, store, pickQty)}
+                >
+                  Add {pickQty} to cart
+                </Button>
+              </>
+            )}
             <Button icon={comparing ? Check : Scale} aria-pressed={comparing} onClick={() => toggleCompare(offer.id)}>
               {comparing ? "Comparing" : "Compare"}
             </Button>

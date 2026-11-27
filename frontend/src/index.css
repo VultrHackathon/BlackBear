@@ -1,35 +1,42 @@
 @import "tailwindcss";
 
 /*
- * blackbear design tokens.
- * One accent (lime) for primary actions only. Green / amber / red are reserved
- * for trust and security. The default Tailwind palette is removed on purpose.
+ * blackbear storefront tokens (prototype/ecommerce1).
  *
- * Depth has one light source, straight above. Raised things (keys, cards, monitor
- * housings) get a highlight on their top edge and a shadow underneath; recessed
- * things (inputs, screens, readouts) get an inner shadow at the top. There is no
- * `white` in the palette: highlights are literal rgb() inside the tokens below.
+ * The page is light: warm white canvas, white cards, near-black ink and one yellow
+ * accent for primary actions. Green / amber / red stay reserved for trust and
+ * security. The default Tailwind palette is removed on purpose.
+ *
+ * The sandbox stage and its dialog are dark: any element with `.theme-dark`
+ * swaps the colour and shadow variables below for its whole subtree, because the
+ * utilities read them through var().
+ *
+ * Depth has one light source, straight above. Raised things get a highlight on
+ * their top edge and a shadow underneath; recessed things get an inner shadow.
+ * Shadow colours are variables too, so the same `shadow-key` is soft on the light
+ * page and deep on the dark stage.
  */
 @theme {
   --color-*: initial;
 
-  --color-canvas: #0b0c0f;
-  --color-well: #07080a;
-  --color-surface: #14161b;
-  --color-raised: #1a1d23;
-  --color-line: #262a33;
-  --color-line-strong: #363b46;
-  --color-ink: #eceae4;
-  --color-muted: #9097a6;
+  --color-canvas: #f4f3ef;
+  --color-well: #ecebe6;
+  --color-surface: #ffffff;
+  --color-raised: #f1f0ec;
+  --color-line: #e4e2dc;
+  --color-line-strong: #cfccc4;
+  --color-ink: #141414;
+  --color-muted: #63625e;
   --color-black: #000000;
+  --color-white: #ffffff;
 
-  --color-accent: #c6f432;
-  --color-accent-hover: #d5f866;
-  --color-on-accent: #0b0c0f;
+  --color-accent: #ffc21a;
+  --color-accent-hover: #ffd24d;
+  --color-on-accent: #141414;
 
-  --color-safe: #5fd38d;
-  --color-caution: #f2b84b;
-  --color-danger: #ff6b5e;
+  --color-safe: #15803d;
+  --color-caution: #a15c07;
+  --color-danger: #d92d20;
 
   --font-sans:
     "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -44,38 +51,39 @@
 
   --ease-press: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-glide: cubic-bezier(0.22, 1, 0.36, 1);
 
   /*
    * Elevation. The three states of a key keep the same layers in the same order
    * (inset, inset, outer, outer) so the browser can animate between them.
    */
-  --shadow-card:
-    inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.5), 0 20px 40px -28px rgb(0 0 0 / 0.9);
+  --shadow-card: inset 0 1px 0 var(--sh-card-hl), 0 1px 2px var(--sh-card-1), 0 24px 48px -32px var(--sh-card-2);
+  --shadow-lift: inset 0 1px 0 var(--sh-card-hl), 0 2px 4px var(--sh-card-1), 0 28px 56px -24px var(--sh-lift);
   --shadow-key:
-    inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 -1px 0 rgb(0 0 0 / 0.35), 0 1px 1px rgb(0 0 0 / 0.5),
-    0 3px 8px -3px rgb(0 0 0 / 0.6);
+    inset 0 1px 0 var(--sh-hl), inset 0 -1px 0 var(--sh-edge), 0 1px 1px var(--sh-1), 0 3px 8px -3px var(--sh-2);
   --shadow-key-hover:
-    inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 -1px 0 rgb(0 0 0 / 0.35), 0 1px 1px rgb(0 0 0 / 0.5),
-    0 8px 16px -6px rgb(0 0 0 / 0.75);
+    inset 0 1px 0 var(--sh-hl-hover), inset 0 -1px 0 var(--sh-edge), 0 1px 1px var(--sh-1),
+    0 8px 16px -6px var(--sh-2-hover);
   --shadow-key-pressed:
-    inset 0 2px 4px rgb(0 0 0 / 0.55), inset 0 -1px 0 rgb(255 255 255 / 0.04), 0 0 0 rgb(0 0 0 / 0),
-    0 0 0 0 rgb(0 0 0 / 0);
+    inset 0 2px 4px var(--sh-press), inset 0 -1px 0 var(--sh-press-hl), 0 0 0 transparent, 0 0 0 0 transparent;
   --shadow-accent:
-    inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 1px 1px rgb(0 0 0 / 0.6),
-    0 6px 20px -6px rgb(198 244 50 / 0.4);
+    inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -2px 0 rgb(0 0 0 / 0.12), 0 1px 1px rgb(0 0 0 / 0.18),
+    0 6px 18px -6px rgb(255 178 0 / 0.55);
   --shadow-accent-hover:
-    inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 1px 1px rgb(0 0 0 / 0.6),
-    0 10px 28px -6px rgb(198 244 50 / 0.55);
+    inset 0 1px 0 rgb(255 255 255 / 0.65), inset 0 -2px 0 rgb(0 0 0 / 0.12), 0 1px 1px rgb(0 0 0 / 0.18),
+    0 12px 26px -8px rgb(255 178 0 / 0.7);
   --shadow-accent-pressed:
-    inset 0 2px 4px rgb(0 0 0 / 0.3), inset 0 -1px 0 rgb(255 255 255 / 0.25), 0 0 0 rgb(0 0 0 / 0),
-    0 2px 8px -4px rgb(198 244 50 / 0.3);
-  --shadow-knob: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 1px 3px rgb(0 0 0 / 0.6);
-  --shadow-float:
-    0 0 0 1px rgb(0 0 0 / 0.55), 0 12px 24px -8px rgb(0 0 0 / 0.6), 0 36px 72px -20px rgb(0 0 0 / 0.9);
+    inset 0 2px 4px rgb(0 0 0 / 0.2), inset 0 -1px 0 rgb(255 255 255 / 0.3), 0 0 0 transparent,
+    0 2px 6px -4px rgb(255 178 0 / 0.4);
+  --shadow-ink:
+    inset 0 1px 0 rgb(255 255 255 / 0.18), inset 0 -1px 0 rgb(0 0 0 / 0.5), 0 1px 1px rgb(0 0 0 / 0.25),
+    0 6px 14px -6px rgb(0 0 0 / 0.45);
+  --shadow-knob: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 1px 3px rgb(0 0 0 / 0.35);
+  --shadow-float: 0 0 0 1px var(--sh-float-ring), 0 12px 24px -8px var(--sh-float-1), 0 40px 80px -24px var(--sh-float-2);
   --shadow-led: 0 0 6px 1px rgb(236 234 228 / 0.65);
   --shadow-led-danger: 0 0 8px 1px rgb(255 107 94 / 0.8);
   --shadow-alarm: 0 0 0 1px rgb(255 107 94 / 0.35), 0 0 22px -2px rgb(255 107 94 / 0.5);
-  --inset-shadow-well: inset 0 2px 4px rgb(0 0 0 / 0.5), inset 0 0 0 1px rgb(0 0 0 / 0.25);
+  --inset-shadow-well: inset 0 2px 4px var(--sh-well), inset 0 0 0 1px var(--sh-well-ring);
 
   --animate-fade-in: fade-in 0.4s ease-out both;
   --animate-rise: rise 0.35s ease-out both;
@@ -87,6 +95,10 @@
   --animate-led: led 1.6s ease-in-out infinite;
   --animate-caret: caret 1.1s steps(1, end) infinite;
   --animate-reticle: reticle 1.4s ease-in-out infinite;
+  /* Storefront. */
+  --animate-typing: typing 1.2s ease-in-out infinite;
+  --animate-pop: pop 0.32s var(--ease-glide) both;
+  --animate-float: float 6s ease-in-out infinite;
 
   @keyframes fade-in {
     from {
@@ -128,6 +140,37 @@
     to {
       opacity: 1;
       transform: none;
+    }
+  }
+  @keyframes typing {
+    0%,
+    60%,
+    100% {
+      opacity: 0.25;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
     }
   }
   @keyframes orbit {
@@ -237,9 +280,66 @@
   background-image: repeating-linear-gradient(-45deg, var(--color-danger) 0 6px, transparent 6px 12px);
 }
 
+/* Shadow colours for the light page; `.theme-dark` below swaps them. */
+:root {
+  --sh-card-hl: rgb(255 255 255 / 0.9);
+  --sh-card-1: rgb(20 20 20 / 0.05);
+  --sh-card-2: rgb(20 20 20 / 0.18);
+  --sh-lift: rgb(20 20 20 / 0.28);
+  --sh-hl: rgb(255 255 255 / 0.9);
+  --sh-hl-hover: rgb(255 255 255 / 1);
+  --sh-edge: rgb(20 20 20 / 0.07);
+  --sh-1: rgb(20 20 20 / 0.08);
+  --sh-2: rgb(20 20 20 / 0.12);
+  --sh-2-hover: rgb(20 20 20 / 0.18);
+  --sh-press: rgb(20 20 20 / 0.14);
+  --sh-press-hl: rgb(255 255 255 / 0.4);
+  --sh-float-ring: rgb(20 20 20 / 0.06);
+  --sh-float-1: rgb(20 20 20 / 0.1);
+  --sh-float-2: rgb(20 20 20 / 0.3);
+  --sh-well: rgb(20 20 20 / 0.06);
+  --sh-well-ring: rgb(20 20 20 / 0.03);
+}
+
+/* The sandbox stage: the original dark palette, scoped to a subtree. */
+.theme-dark {
+  --color-canvas: #0b0c0f;
+  --color-well: #07080a;
+  --color-surface: #14161b;
+  --color-raised: #1a1d23;
+  --color-line: #262a33;
+  --color-line-strong: #363b46;
+  --color-ink: #eceae4;
+  --color-muted: #9097a6;
+  --color-safe: #5fd38d;
+  --color-caution: #f2b84b;
+  --color-danger: #ff6b5e;
+
+  --sh-card-hl: rgb(255 255 255 / 0.05);
+  --sh-card-1: rgb(0 0 0 / 0.5);
+  --sh-card-2: rgb(0 0 0 / 0.9);
+  --sh-lift: rgb(0 0 0 / 0.95);
+  --sh-hl: rgb(255 255 255 / 0.1);
+  --sh-hl-hover: rgb(255 255 255 / 0.16);
+  --sh-edge: rgb(0 0 0 / 0.35);
+  --sh-1: rgb(0 0 0 / 0.5);
+  --sh-2: rgb(0 0 0 / 0.6);
+  --sh-2-hover: rgb(0 0 0 / 0.75);
+  --sh-press: rgb(0 0 0 / 0.55);
+  --sh-press-hl: rgb(255 255 255 / 0.04);
+  --sh-float-ring: rgb(0 0 0 / 0.55);
+  --sh-float-1: rgb(0 0 0 / 0.6);
+  --sh-float-2: rgb(0 0 0 / 0.9);
+  --sh-well: rgb(0 0 0 / 0.5);
+  --sh-well-ring: rgb(0 0 0 / 0.25);
+
+  color-scheme: dark;
+  color: var(--color-ink);
+}
+
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     background-color: var(--color-canvas);
     color: var(--color-ink);
     scrollbar-gutter: stable;
@@ -248,11 +348,6 @@
 
   body {
     min-height: 100dvh;
-    /* A faint glow from above plus fine grain, so the dark gradients don't band. */
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      radial-gradient(120% 28rem at 50% 0%, rgb(236 234 228 / 0.05), transparent 70%);
-    background-repeat: repeat, no-repeat;
     font-family: var(--font-sans);
     font-feature-settings: "cv11";
     -webkit-font-smoothing: antialiased;

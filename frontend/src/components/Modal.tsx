@@ -15,6 +15,7 @@ export function Modal({
   onClose,
   onKeyDown,
   wide = false,
+  dark = false,
   children,
 }: {
   /** Small line above the title, e.g. "Evidence · Elgiganten". */
@@ -24,6 +25,8 @@ export function Modal({
   onClose: () => void;
   onKeyDown?: (e: KeyboardEvent<HTMLDialogElement>) => void;
   wide?: boolean;
+  /** Use the dark sandbox palette inside the dialog. */
+  dark?: boolean;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -48,9 +51,9 @@ export function Modal({
         // Click on the backdrop (the dialog box itself, outside the content) closes.
         if (e.target === e.currentTarget) close();
       }}
-      className={`m-auto max-h-[calc(100dvh-1.5rem)] max-w-none overflow-hidden rounded-2xl border border-line-strong bg-surface p-0 text-ink shadow-float backdrop:bg-black/75 motion-safe:animate-rise ${
+      className={`m-auto max-h-[calc(100dvh-1.5rem)] max-w-none overflow-hidden rounded-2xl border border-line-strong bg-surface p-0 text-ink shadow-float backdrop:bg-black/60 backdrop:backdrop-blur-sm motion-safe:animate-pop ${
         wide ? "w-[min(76rem,calc(100vw-1.5rem))]" : "w-[min(60rem,calc(100vw-1.5rem))]"
-      }`}
+      } ${dark ? "theme-dark" : ""}`}
     >
       <div className="flex max-h-[calc(100dvh-1.5rem)] flex-col">
         <header className="flex items-start justify-between gap-4 border-b border-line px-4 py-3 sm:px-5 sm:py-4">

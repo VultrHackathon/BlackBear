@@ -1,25 +1,34 @@
-import { Copy, CopyCheck, ImageOff, ShieldCheck, ShieldExclamationPoint } from "lucide-react";
+import { Check, Copy, CopyCheck, RefreshCw, ShieldCheck, ShieldExclamationPoint } from "lucide-react";
 import { useRef, useState } from "react";
-import { formatDateTime, formatRelative, formatSek } from "../lib/format";
+import { shownPrice } from "../lib/deals";
+import { formatClock, formatDateTime, formatSek } from "../lib/format";
 import { hostMatchesDomain, hostnameOf, safeImageSrc } from "../lib/security";
+import { useHuntActions, useHuntState } from "../state/HuntContext";
 import type { Offer, StoreConfig } from "../types";
 import { Modal } from "./Modal";
-import { Button } from "./ui";
+import { PromoChip } from "./PromoChip";
+import { ProofScreen } from "./ProofScreen";
+import { StoreMark } from "./StoreMark";
+import { TRUST } from "./trust";
+import { Button, Pill, Spinner } from "./ui";
 
 /**
- * Evidence for one offer: the screenshot, the page URL as PLAIN TEXT (never a link,
- * because store content is hostile), and when it was captured. Uses the shared
- * <Modal>: focus is trapped, Escape closes, the page behind is inert.
+ * The product view: the screenshot the agent took, the price it read, the auditor's
+ * verdict, and the page URL as PLAIN TEXT (never a link: store content is hostile).
  */
 export function EvidenceModal({
   offer,
   store,
+  includeDelivery,
   onClose,
 }: {
   offer: Offer;
   store: StoreConfig | undefined;
+  includeDelivery: boolean;
   onClose: () => void;
 }) {
+  const state = useHuntState();
+  const { reverify } = useHuntActions();
   // Inside the dialog, so it stays focusable while the rest of the page is inert.
   const bodyRef = useRef<HTMLDivElement>(null);
   const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
@@ -29,6 +38,9 @@ export function EvidenceModal({
   const domain = store?.domain;
   const hostOk = domain ? hostMatchesDomain(offer.url, domain) : false;
   const storeName = store?.name ?? offer.store_id;
+  const trust = TRUST[offer.trust?.label ?? "unknown"];
+  const rv = state.reverify[offer.id];
+  const memberships = state.request?.memberships ?? [];
 
   const copyUrl = async () => {
     let ok = false;
@@ -58,86 +70,150 @@ export function EvidenceModal({
   };
 
   return (
-    <Modal eyebrow={`Evidence · ${storeName}`} title={offer.title} closeLabel="Close evidence" onClose={onClose}>
-      <div ref={bodyRef} className="space-y-5">
-        <figure>
-          <div className="overflow-hidden rounded-lg border border-line bg-canvas">
-            {src ? (
-              <img
-                src={src}
-                alt={`Screenshot of the ${storeName} page taken by its sandbox`}
-                className="block h-auto w-full"
-                referrerPolicy="no-referrer"
-                draggable={false}
-              />
-            ) : (
-              <div className="flex aspect-[16/10] flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted">
-                <ImageOff className="size-5" aria-hidden="true" />
-                Screenshot not loaded: it doesn't come from the blackbear API or a data: URL.
-              </div>
-            )}
+    <Modal
+      wide
+      eyebrow={
+        <span className="inline-flex items-center gap-1.5">
+          <StoreMark id={offer.store_id} name={storeName} size="xs" decorative />
+          {storeName}
+        </span>
+      }
+      title={offer.title}
+      closeLabel="Close product"
+      onClose={onClose}
+    >
+      <div ref={bodyRef} className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <figure className="min-w-0">
+          <div className="rounded-2xl bg-raised p-4 sm:p-6">
+            <ProofScreen large src={src} alt={`Screenshot of the ${storeName} page taken by its sandbox`} />
           </div>
           <figcaption className="mt-2 text-xs text-muted">
-            Captured by the {storeName} sandbox. This is what the agent saw when it read the price.
+            What the agent saw when it read the price
+            {offer.captured_at ? (
+              <>
+                {" · "}
+                <time dateTime={offer.captured_at}>{formatDateTime(offer.captured_at)}</time>
+              </>
+            ) : null}
           </figcaption>
         </figure>
 
-        <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-[9rem_minmax(0,1fr)]">
-          <dt className="text-muted">Page URL</dt>
-          <dd className="min-w-0 space-y-2">
-            <div className="flex items-start gap-2">
-              <p className="min-w-0 flex-1 rounded-md border border-line bg-canvas px-2.5 py-2 font-mono text-xs break-all select-all">
+        <div className="min-w-0 space-y-5">
+          <div>
+            <p className="text-4xl font-extrabold tracking-[-0.03em] tabular-nums">
+              {formatSek(shownPrice(offer, includeDelivery))}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {offer.shipping_sek === 0
+                ? "Free delivery"
+                : includeDelivery
+                  ? `incl. ${formatSek(offer.shipping_sek)} delivery`
+                  : `+ ${formatSek(offer.shipping_sek)} delivery`}
+              {offer.quantity > 1 ? ` · for ${offer.quantity}` : ""}
+            </p>
+            <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs">
+              <div className="flex gap-1.5">
+                <dt className="text-muted">Sale</dt>
+                <dd className="tabular-nums">{formatSek(offer.price_sek)}</dd>
+              </div>
+              {offer.previous_price_sek != null ? (
+                <div className="flex gap-1.5">
+                  <dt className="text-muted">Before</dt>
+                  <dd className="tabular-nums">
+                    <s className="decoration-muted">{formatSek(offer.previous_price_sek)}</s>
+                  </dd>
+                </div>
+              ) : null}
+              {offer.lowest_30d_price_sek != null ? (
+                <div className="flex gap-1.5">
+                  <dt className="text-muted">30-day low</dt>
+                  <dd className="tabular-nums">{formatSek(offer.lowest_30d_price_sek)}</dd>
+                </div>
+              ) : null}
+            </dl>
+          </div>
+
+          <section aria-label="Trust verdict" className="rounded-2xl border p-4">
+            <Pill tone={trust.tone} icon={trust.icon}>
+              {trust.heading}
+            </Pill>
+            {offer.trust?.reasons.length ? (
+              <ul className="mt-3 space-y-1.5 text-sm">
+                {offer.trust.reasons.map((r, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="mt-2 size-1 shrink-0 rounded-full bg-muted" aria-hidden="true" />
+                    <span className="min-w-0 break-words">{r}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+
+          {offer.promos.length ? (
+            <ul className="flex flex-wrap gap-2" aria-label="Promotions">
+              {offer.promos.map((p, i) => (
+                <PromoChip key={`${p.type}-${i}`} promo={p} memberships={memberships} />
+              ))}
+            </ul>
+          ) : null}
+
+          <div>
+            <p className="text-xs text-muted">Page address (plain text, never a link)</p>
+            <div className="mt-1 flex items-start gap-2">
+              <p className="min-w-0 flex-1 rounded-lg border bg-well px-2.5 py-2 font-mono text-xs break-all select-all inset-shadow-well">
                 {offer.url || "–"}
               </p>
-              <Button
-                size="sm"
-                icon={copy === "copied" ? CopyCheck : Copy}
-                onClick={() => void copyUrl()}
-                disabled={!offer.url}
-              >
-                {copy === "copied" ? "Copied" : copy === "failed" ? "Copy failed" : "Copy"}
+              <Button size="sm" icon={copy === "copied" ? CopyCheck : Copy} onClick={() => void copyUrl()} disabled={!offer.url}>
+                {copy === "copied" ? "Copied" : copy === "failed" ? "Failed" : "Copy"}
               </Button>
             </div>
             <span className="sr-only" aria-live="polite">
-              {copy === "copied" ? "URL copied to clipboard" : copy === "failed" ? "Copy failed" : ""}
+              {copy === "copied" ? "Address copied" : copy === "failed" ? "Copy failed" : ""}
             </span>
             {domain ? (
               hostOk ? (
-                <p className="flex items-center gap-1.5 text-xs text-safe">
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-safe">
                   <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" />
-                  Host {host} matches this sandbox's allowlist ({domain}).
+                  {host} is this store's own site
                 </p>
               ) : (
-                <p className="flex items-center gap-1.5 text-xs text-danger">
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-danger">
                   <ShieldExclamationPoint className="size-3.5 shrink-0" aria-hidden="true" />
-                  Host {host ?? "unknown"} is outside this sandbox's allowlist ({domain}).
+                  {host ?? "Unknown host"} is not {domain}
                 </p>
               )
             ) : null}
-            <p className="text-xs text-muted">
-              Shown as plain text on purpose. Store pages are untrusted, so blackbear never turns them into
-              clickable links. Copy it and check it yourself.
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+            <Button
+              variant="ink"
+              icon={RefreshCw}
+              loading={rv?.status === "pending"}
+              onClick={() => void reverify(offer.id)}
+            >
+              {rv?.status === "pending" ? "Checking…" : "Check the price again"}
+            </Button>
+            <p className="min-w-0 text-sm" aria-live="polite">
+              {rv?.status === "pending" ? (
+                <span className="inline-flex items-center gap-2 text-muted">
+                  <Spinner /> In a fresh sandbox
+                </span>
+              ) : rv?.status === "same" ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="size-4" aria-hidden="true" /> Same price
+                  <span className="font-mono text-xs text-muted">{formatClock(rv.at)}</span>
+                </span>
+              ) : rv?.status === "changed" ? (
+                <span className="tabular-nums">
+                  Now {formatSek(rv.price)} <span className="text-muted">(was {formatSek(rv.previous)})</span>
+                </span>
+              ) : rv?.status === "error" ? (
+                <span>Couldn't check: {rv.message}</span>
+              ) : null}
             </p>
-          </dd>
-
-          <dt className="text-muted">Captured at</dt>
-          <dd className="font-mono text-xs">
-            <time dateTime={offer.captured_at}>{formatDateTime(offer.captured_at)}</time>
-            <span className="ml-2 font-sans text-muted">({formatRelative(offer.captured_at, Date.now())})</span>
-          </dd>
-
-          <dt className="text-muted">Price on capture</dt>
-          <dd className="tabular-nums">
-            {formatSek(offer.price_sek)}
-            <span className="text-muted">
-              {" "}
-              · effective total {formatSek(offer.effective_total_sek)} for {offer.quantity}
-            </span>
-          </dd>
-
-          <dt className="text-muted">Offer ID</dt>
-          <dd className="font-mono text-xs break-all text-muted">{offer.id}</dd>
-        </dl>
+          </div>
+        </div>
       </div>
     </Modal>
   );

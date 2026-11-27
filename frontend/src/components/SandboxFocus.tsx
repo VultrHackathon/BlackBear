@@ -66,6 +66,7 @@ export function SandboxFocus({
   return (
     <Modal
       wide
+      dark
       eyebrow={`Sandbox ${index + 1} of ${total}`}
       title={
         <span className="flex flex-wrap items-center gap-2">

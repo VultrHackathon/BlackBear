@@ -6,6 +6,8 @@ Built for the Vultr Agent Runtime Hackathon, Stockholm, Black Friday 2026. This 
 
 React 18 · TypeScript · Vite 8 · Tailwind CSS v4 · lucide-react · react-markdown. State is `useReducer` + context; there is no other UI or state library.
 
+> **Branch `prototype/ecommerce1`:** a chat-first storefront. You tell the agent what you want, watch the live sandboxes, then pick from a product shelf. The agent asks only questions the data makes worth asking. The hunt form, plan review, results list, security scoreboard, metrics bar and compare drawer are not used here; they remain on `main`.
+
 ---
 
 ## Quick start
@@ -29,14 +31,12 @@ Requires Node ≥ 20.19.
 
 ### 2-minute demo script
 
-1. Click **Start hunt** with "65-inch OLED TV", then read the plan and click **Approve & dispatch**.
-2. Watch the ten sandboxes; click any of them for a larger view with its full action log. The **SuperDeals** honeypot tile flashes red twice: a hidden prompt injection (stopped by the injection guard) and a redirect to `evil.example.com` (stopped by the egress proxy). The security scoreboard shows 2 attempted, 2 blocked, 0% success.
-3. Results: NetOnNet wins at 14 240 kr (code BLACK10 confirmed in the cart). Power's "−42%" is **Fake**: hover the badge to see why. Komplett is **Questionable**, because its cart price differs from the advertised price.
-4. Open **Evidence** on any offer. The URL is plain text with a copy button, never a link.
-5. Click **Re-verify** on Inet, which gets a new price, then on NetOnNet, which returns "Same price ✓".
-6. Check **Compare** on two offers. The drawer explains the winner and shows a breakdown table.
-7. Click the example **Saffran 0,5 g × 2** and hunt as a guest. Apotek Hjärtat's "2 för 49 kr" was not applied in a guest cart, so the effective total is 70 kr (Questionable), and Kronans wins.
-8. Select **Stammis (Apotek Hjärtat)** and hunt again. Hjärtat now wins at 49 kr.
+1. Type "65-inch OLED TV" in the chat. The agent asks how many; answer 1. It shows the 10 stores it will check; click **Start hunting**.
+2. Watch the live sandboxes. Click any monitor for a larger view with its full action log. The **SuperDeals** honeypot flashes red twice, and the chat reports both attacks and the layer that stopped them.
+3. When the hunt is done, the stage folds and the products move up. NetOnNet is the best deal at 14 240 kr. Power's "−42%" sticker is struck through: the auditor judged it **Fake**.
+4. The agent asks about delivery, because without it CDON is cheapest (13 790 kr). Pick **Product price only** and the shelf re-sorts.
+5. Open any product. The page address is plain text with a copy button, never a link. **Check the price again** re-verifies it in a fresh sandbox.
+6. In the same chat, type "Saffran 0,5 g" and answer 2. The agent asks whether you have Stammis, because Apotek Hjärtat's member price (49 kr) beats the best deal. Answer **Yes, search again**: Hjärtat now wins at 49 kr.
 
 ---
 
@@ -172,21 +172,22 @@ Store content is hostile, and the frontend treats every backend string that way.
 ## Accessibility and design
 
 - **Keyboard:** fully keyboard navigable, with a skip link and visible focus rings (2 px, ink colour).
-  - Mobile tabs use arrow keys and Home/End.
-  - The evidence modal and the sandbox view share one native `<dialog>` shell ([src/components/Modal.tsx](src/components/Modal.tsx)): focus is trapped, Escape closes it, and focus returns to the button or tile that opened it.
+  - The product view and the sandbox view share one native `<dialog>` shell ([src/components/Modal.tsx](src/components/Modal.tsx)): focus is trapped, Escape closes it, and focus returns to the button or tile that opened it.
   - Each sandbox tile is one button. In the sandbox view, Previous / Next or the arrow keys switch sandbox.
-  - The compare drawer moves focus to its heading, and Escape closes it.
-- **Live regions:** `aria-live="polite"` on the grid summary, results summary, ranking text, re-verify result and attack log.
+  - The agent's questions are buttons in the conversation. On small screens, when the chat has scrolled away, a floating button brings you back to the open question.
+- **Live regions:** the conversation is a `role="log"`; the sandbox progress, product count, re-verify result and the sandbox view's status line are `aria-live="polite"`.
 - **Not colour-only:** trust badges, statuses and promo states pair every colour with an icon and text.
-- **Contrast:** WCAG AA. Muted text `#9097A6` is 6.2:1 on surfaces.
+- **Contrast:** WCAG AA. Muted text is `#63625E` on the light page and `#9097A6` on the dark stage.
 - **Motion:** tile rise, screenshot crossfade, blocked flash, and three effects that run only while a sandbox is working: a light travelling round the screen bezel, a beam sweeping the screen while extracting, and corner brackets while verifying. They animate transform and opacity only, and a finished sandbox is completely still. `prefers-reduced-motion` removes them; the status word and icon always carry the meaning, and blocked tiles keep a static red border and reason.
 - **Responsive:** down to 375 px.
-  - Tiles fill the row at 12 rem or wider: 1 column on mobile, 2–3 on tablet, 4 at 1280 px and 5×2 from 1600 px.
-  - Security scoreboard: a sticky side panel at ≥ 1024 px, a tab below that.
+  - Below 1024 px everything stacks: chat, then sandboxes, then products. From 1024 px the chat is a sticky panel on the left.
+  - Sandbox tiles fill the row at 11 rem or wider; product cards at 14 rem or wider.
 - **Palette** (Tailwind v4 `@theme` in [src/index.css](src/index.css); the default palette is removed):
-  - Background `#0B0C0F`, surface `#14161B`, border `#262A33`, text `#ECEAE4`, muted `#9097A6`.
-  - Lime `#C6F432` for primary actions only.
-  - Green `#5FD38D`, amber `#F2B84B` and red `#FF6B5E` only for trust and security. Operational errors are neutral.
+  - Light page: canvas `#F4F3EF`, cards `#FFFFFF`, text `#141414`, muted `#63625E`.
+  - Yellow `#FFC21A` for primary actions and the discount stickers.
+  - Green, amber and red only for trust and security. Operational errors are neutral.
+  - The sandbox stage, the sandbox view and every screenshot frame use the dark palette: `.theme-dark` swaps the colour and shadow variables for its subtree.
+- **Store marks** ([src/lib/brands.ts](src/lib/brands.ts)) are each store's initials on its brand colour, not its logo.
 - **Depth:** one light source, straight above, defined as shadow tokens in `@theme`. Raised things (buttons, cards, sandbox monitors) have a highlight on the top edge and a shadow underneath; recessed things (inputs, screens, readouts) have an inner shadow. A pressed button moves down 1 px and its shadow turns inward.
 - **Components:** `Button`, `Pill`, `Led`, `Switch`, `ToggleChip` and the input style live in [src/components/ui.tsx](src/components/ui.tsx). Size and colour come from props, not from extra utility classes: two classes that set the same property do not reliably override each other.
 - **Sandbox monitors** show only what the event stream reports: status, screenshot, actions, timer and the allowed domain. One mark in the activity strip is one agent action (the last 20 are kept), red when it was blocked.
@@ -209,14 +210,16 @@ src/
     huntReducer.ts   every SSE event → state; UI actions; selectors
     HuntContext.tsx  provider: config, stream lifecycle, actions
   components/
-    Header, HuntForm, PlanReview, SandboxGrid, StoreTile, Monitor, SandboxFocus,
-    Results, OfferCard, TrustBadge, PromoChip, EvidenceModal, Modal, CompareDrawer,
-    SecurityScoreboard, MetricsBar, SafeMarkdown,
-    ui (button, pill, status light, switch, chip, input style, empty state, section header)
+    Chat (conversation + the agent's questions), SandboxStage, StoreTile, Monitor,
+    SandboxFocus, ProductShelf, EvidenceModal (product view), ProofScreen, Modal,
+    SiteChrome (header, footer with store marks), HeroArt, StoreMark, BrandMark,
+    PromoChip, SafeMarkdown, trust, ui (button, pill, status light, switch, chip, input style)
   lib/
     format.ts        sv-SE currency, numbers, timers, relative time
     security.ts      screenshot / link URL allowlists
     membership.ts    membership matching
     labels.ts        attack kinds, defence layers, action log formatting
+    deals.ts         delivery and membership arithmetic behind the agent's questions
+    brands.ts        store brand colours and initials
     env.ts, useNow.ts
 ```

@@ -1,6 +1,7 @@
 import { Box, Cpu, FlaskConical, Server, type LucideIcon } from "lucide-react";
 import { USE_MOCK } from "../lib/env";
 import { useHuntState } from "../state/HuntContext";
+import { Pill } from "./ui";
 
 function Logo() {
   return (
@@ -14,8 +15,8 @@ function Logo() {
   );
 }
 
-function Pill({
-  icon: Icon,
+function StatusItem({
+  icon,
   label,
   value,
   loading,
@@ -28,14 +29,10 @@ function Pill({
   title?: string;
 }) {
   return (
-    <li
-      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs"
-      title={title}
-    >
-      <Icon className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-      {label ? <span className="text-muted">{label}</span> : null}
-      <span className={`truncate font-mono ${loading ? "text-muted" : "text-ink"}`}>{value}</span>
-    </li>
+    <Pill as="li" icon={icon} className="bg-surface shadow-card" title={title}>
+      {label ? <span>{label}</span> : null}
+      <span className={`truncate font-mono ${loading ? "" : "text-ink"}`}>{value}</span>
+    </Pill>
   );
 }
 
@@ -57,16 +54,16 @@ export function Header() {
         </div>
 
         <ul className="flex min-w-0 flex-wrap gap-2 sm:ml-auto" aria-label="System status">
-          <Pill icon={Cpu} label="Model" value={config?.model ?? placeholder} loading={!config} />
-          <Pill icon={Box} label="Sandbox" value={config?.runtime ?? placeholder} loading={!config} />
-          <Pill
+          <StatusItem icon={Cpu} label="Model" value={config?.model ?? placeholder} loading={!config} />
+          <StatusItem icon={Box} label="Sandbox" value={config?.runtime ?? placeholder} loading={!config} />
+          <StatusItem
             icon={Server}
             value={failed ? "Backend unreachable" : "Running on Vultr"}
             loading={loading}
             title={failed ? (configError ?? undefined) : "Agents run in isolated sandboxes on Vultr"}
           />
           {USE_MOCK ? (
-            <Pill
+            <StatusItem
               icon={FlaskConical}
               value="Mock replay"
               title="VITE_USE_MOCK=true: a scripted hunt is replayed in the browser, no backend involved"

@@ -30,7 +30,7 @@ Requires Node ≥ 20.19.
 ### 2-minute demo script
 
 1. Click **Start hunt** with "65-inch OLED TV", then read the plan and click **Approve & dispatch**.
-2. Watch the ten sandboxes. The **SuperDeals** honeypot tile flashes red twice: a hidden prompt injection (stopped by the injection guard) and a redirect to `evil.example.com` (stopped by the egress proxy). The security scoreboard shows 2 attempted, 2 blocked, 0% success.
+2. Watch the ten sandboxes; click any of them for a larger view with its full action log. The **SuperDeals** honeypot tile flashes red twice: a hidden prompt injection (stopped by the injection guard) and a redirect to `evil.example.com` (stopped by the egress proxy). The security scoreboard shows 2 attempted, 2 blocked, 0% success.
 3. Results: NetOnNet wins at 14 240 kr (code BLACK10 confirmed in the cart). Power's "−42%" is **Fake**: hover the badge to see why. Komplett is **Questionable**, because its cart price differs from the advertised price.
 4. Open **Evidence** on any offer. The URL is plain text with a copy button, never a link.
 5. Click **Re-verify** on Inet, which gets a new price, then on NetOnNet, which returns "Same price ✓".
@@ -173,19 +173,23 @@ Store content is hostile, and the frontend treats every backend string that way.
 
 - **Keyboard:** fully keyboard navigable, with a skip link and visible focus rings (2 px, ink colour).
   - Mobile tabs use arrow keys and Home/End.
-  - The evidence modal is a native `<dialog>`: focus is trapped, Escape closes it, and focus returns to the button that opened it.
+  - The evidence modal and the sandbox view share one native `<dialog>` shell ([src/components/Modal.tsx](src/components/Modal.tsx)): focus is trapped, Escape closes it, and focus returns to the button or tile that opened it.
+  - Each sandbox tile is one button. In the sandbox view, Previous / Next or the arrow keys switch sandbox.
   - The compare drawer moves focus to its heading, and Escape closes it.
 - **Live regions:** `aria-live="polite"` on the grid summary, results summary, ranking text, re-verify result and attack log.
 - **Not colour-only:** trust badges, statuses and promo states pair every colour with an icon and text.
 - **Contrast:** WCAG AA. Muted text `#9097A6` is 6.2:1 on surfaces.
-- **Motion:** subtle only (tile rise, screenshot crossfade, blocked flash). `prefers-reduced-motion` disables animations; blocked tiles keep a static red border and reason.
+- **Motion:** tile rise, screenshot crossfade, blocked flash, and three effects that run only while a sandbox is working: a light travelling round the screen bezel, a beam sweeping the screen while extracting, and corner brackets while verifying. They animate transform and opacity only, and a finished sandbox is completely still. `prefers-reduced-motion` removes them; the status word and icon always carry the meaning, and blocked tiles keep a static red border and reason.
 - **Responsive:** down to 375 px.
-  - Tiles: 1 column on mobile, 2 on tablet, 5×2 on desktop (≥ 1280 px).
+  - Tiles fill the row at 12 rem or wider: 1 column on mobile, 2–3 on tablet, 4 at 1280 px and 5×2 from 1600 px.
   - Security scoreboard: a sticky side panel at ≥ 1024 px, a tab below that.
 - **Palette** (Tailwind v4 `@theme` in [src/index.css](src/index.css); the default palette is removed):
   - Background `#0B0C0F`, surface `#14161B`, border `#262A33`, text `#ECEAE4`, muted `#9097A6`.
   - Lime `#C6F432` for primary actions only.
   - Green `#5FD38D`, amber `#F2B84B` and red `#FF6B5E` only for trust and security. Operational errors are neutral.
+- **Depth:** one light source, straight above, defined as shadow tokens in `@theme`. Raised things (buttons, cards, sandbox monitors) have a highlight on the top edge and a shadow underneath; recessed things (inputs, screens, readouts) have an inner shadow. A pressed button moves down 1 px and its shadow turns inward.
+- **Components:** `Button`, `Pill`, `Led`, `Switch`, `ToggleChip` and the input style live in [src/components/ui.tsx](src/components/ui.tsx). Size and colour come from props, not from extra utility classes: two classes that set the same property do not reliably override each other.
+- **Sandbox monitors** show only what the event stream reports: status, screenshot, actions, timer and the allowed domain. One mark in the activity strip is one agent action (the last 20 are kept), red when it was blocked.
 - **Type:** Inter for UI and JetBrains Mono for logs and metadata. Prices use tabular figures and sv-SE formatting ("9 441 kr").
 
 ---
@@ -205,9 +209,10 @@ src/
     huntReducer.ts   every SSE event → state; UI actions; selectors
     HuntContext.tsx  provider: config, stream lifecycle, actions
   components/
-    Header, HuntForm, PlanReview, SandboxGrid, StoreTile, Results, OfferCard,
-    TrustBadge, PromoChip, EvidenceModal, CompareDrawer, SecurityScoreboard,
-    MetricsBar, SafeMarkdown, ui (buttons, section header, spinner, error note)
+    Header, HuntForm, PlanReview, SandboxGrid, StoreTile, Monitor, SandboxFocus,
+    Results, OfferCard, TrustBadge, PromoChip, EvidenceModal, Modal, CompareDrawer,
+    SecurityScoreboard, MetricsBar, SafeMarkdown,
+    ui (button, pill, status light, switch, chip, input style, empty state, section header)
   lib/
     format.ts        sv-SE currency, numbers, timers, relative time
     security.ts      screenshot / link URL allowlists

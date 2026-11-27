@@ -12,7 +12,7 @@ import { formatClock, formatPercent } from "../lib/format";
 import { kindLabel, LAYER_DESCRIPTIONS, LAYER_ORDER, layerLabel } from "../lib/labels";
 import { useHuntState } from "../state/HuntContext";
 import { selectSecurityStats } from "../state/huntReducer";
-import { card } from "./ui";
+import { card, EmptyState, Pill, well } from "./ui";
 
 const KIND_ICONS: Record<string, LucideIcon> = {
   prompt_injection: Syringe,
@@ -23,8 +23,8 @@ const KIND_ICONS: Record<string, LucideIcon> = {
 
 function Counter({ label, value, tone }: { label: string; value: string; tone?: "safe" | "danger" }) {
   return (
-    <div className="min-w-0 rounded-xl border border-line bg-canvas/50 px-3 py-2.5">
-      <dt className="text-[11px] leading-tight text-muted">{label}</dt>
+    <div className={`${well} min-w-0 px-3 py-2.5`}>
+      <dt className="text-2xs leading-tight text-muted">{label}</dt>
       <dd
         className={`mt-1 font-mono text-xl font-semibold tabular-nums ${
           tone === "safe" ? "text-safe" : tone === "danger" ? "text-danger" : "text-ink"
@@ -67,7 +67,7 @@ export function SecurityScoreboard() {
         <Counter label="Attack success rate" value={rate == null ? "–" : formatPercent(rate)} tone={rateTone} />
       </dl>
 
-      <h3 className="mt-5 text-xs font-medium tracking-wide text-muted uppercase">Stopped by layer</h3>
+      <h3 className="mt-5 text-sm font-medium">Stopped by layer</h3>
       <ul className="mt-2 space-y-1.5">
         {LAYER_ORDER.map((layer) => {
           const n = stats.byLayer[layer] ?? 0;
@@ -77,31 +77,33 @@ export function SecurityScoreboard() {
                 <span className="block">{layerLabel(layer)}</span>
                 <span className="block text-xs text-muted">{LAYER_DESCRIPTIONS[layer]}</span>
               </span>
-              <span
-                className={`mt-0.5 shrink-0 rounded-md border px-1.5 font-mono text-xs tabular-nums ${
-                  n > 0 ? "border-safe/40 text-safe" : "border-line text-muted"
-                }`}
+              <Pill
+                size="xs"
+                shape="tag"
+                mono
+                tone={n > 0 ? "safe" : "neutral"}
+                className="mt-0.5 tabular-nums"
                 aria-label={`${n} stopped`}
               >
                 {n}
-              </span>
+              </Pill>
             </li>
           );
         })}
       </ul>
 
-      <h3 className="mt-5 text-xs font-medium tracking-wide text-muted uppercase">Live attack log</h3>
+      <h3 className="mt-5 text-sm font-medium">Live attack log</h3>
       {security.length === 0 ? (
-        <p className="mt-2 rounded-lg border border-dashed border-line px-3 py-4 text-center text-sm text-muted">
+        <EmptyState compact className="mt-2">
           No attacks yet.
           {honeypot ? ` They start when ${honeypot.name} is part of the hunt.` : ""}
-        </p>
+        </EmptyState>
       ) : null}
       <ol className="mt-2 space-y-2" aria-live="polite" aria-relevant="additions" aria-label="Attack log, newest first">
         {security.map((e) => {
           const Icon = KIND_ICONS[e.kind] ?? Zap;
           return (
-            <li key={e.key} className="rounded-xl border border-line bg-canvas/50 p-3 motion-safe:animate-rise">
+            <li key={e.key} className={`${well} p-3 motion-safe:animate-rise`}>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                 <time className="font-mono text-muted tabular-nums" dateTime={new Date(e.at).toISOString()}>
                   {formatClock(e.at)}
@@ -115,20 +117,16 @@ export function SecurityScoreboard() {
                 <Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
                 {kindLabel(e.kind)}
               </p>
-              <p
-                className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs ${
-                  e.blocked ? "border-safe/40 bg-safe/10 text-safe" : "border-danger/40 bg-danger/10 text-danger"
-                }`}
+              <Pill
+                as="p"
+                tone={e.blocked ? "safe" : "danger"}
+                icon={e.blocked ? ShieldCheck : ShieldExclamationPoint}
+                className="mt-1.5"
               >
-                {e.blocked ? (
-                  <ShieldCheck className="size-3.5" aria-hidden="true" />
-                ) : (
-                  <ShieldExclamationPoint className="size-3.5" aria-hidden="true" />
-                )}
                 {e.blocked ? `Stopped by ${layerLabel(e.layer)}` : `Got past ${layerLabel(e.layer)}`}
-              </p>
+              </Pill>
               {e.detail ? (
-                <p className="mt-2 font-mono text-[11px] leading-relaxed break-words text-muted">{e.detail}</p>
+                <p className="mt-2 font-mono text-2xs leading-relaxed break-words text-muted">{e.detail}</p>
               ) : null}
             </li>
           );

@@ -3,7 +3,7 @@ import { useHuntState } from "../state/HuntContext";
 import { isHuntActive, selectRankedOffers } from "../state/huntReducer";
 import { OfferCard } from "./OfferCard";
 import { SafeMarkdown } from "./SafeMarkdown";
-import { card, ErrorNote, SectionHeader, Spinner } from "./ui";
+import { card, EmptyState, ErrorNote, SectionHeader, Spinner, well } from "./ui";
 
 export function Results() {
   const state = useHuntState();
@@ -36,7 +36,7 @@ export function Results() {
           <p className="font-mono text-xs text-muted">{summary}</p>
 
           {state.summaryMd ? (
-            <div className="rounded-xl border border-line bg-canvas/50 p-4">
+            <div className={`${well} p-4`}>
               <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted">
                 <Sparkles className="size-3.5" aria-hidden="true" />
                 Ranking agent
@@ -55,10 +55,9 @@ export function Results() {
 
       {offers.length === 0 ? (
         state.phase === "idle" ? null : (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-line px-4 py-10 text-center text-sm text-muted">
-            <Tags className="size-5" aria-hidden="true" />
+          <EmptyState icon={Tags}>
             {running ? "Offers appear here as soon as an agent has a price with screenshot proof." : "No offers in this hunt."}
-          </div>
+          </EmptyState>
         )
       ) : (
         <ol className="space-y-3" aria-label="Offers, best first">

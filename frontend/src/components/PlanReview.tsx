@@ -1,7 +1,7 @@
 import { Check, ChevronDown, ListChecks, Lock, Pencil, Play } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { useHuntActions, useHuntState } from "../state/HuntContext";
-import { btnPrimary, btnSecondary, card, ErrorNote, SectionHeader, Spinner } from "./ui";
+import { Button, card, EmptyState, ErrorNote, Pill, SectionHeader, Skeleton, Spinner, Switch } from "./ui";
 
 function AutoApproveSwitch() {
   const { autoApprove, phase } = useHuntState();
@@ -19,24 +19,7 @@ function AutoApproveSwitch() {
           {midHunt ? "Applies to the next hunt" : "Dispatch as soon as the plan is ready"}
         </span>
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={autoApprove}
-        aria-labelledby={labelId}
-        aria-describedby={descId}
-        onClick={() => setAutoApprove(!autoApprove)}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors ${
-          autoApprove ? "border-ink bg-ink" : "border-line-strong bg-raised"
-        }`}
-      >
-        <span
-          className={`inline-block size-4 rounded-full transition-transform ${
-            autoApprove ? "translate-x-6 bg-canvas" : "translate-x-1 bg-muted"
-          }`}
-          aria-hidden="true"
-        />
-      </button>
+      <Switch checked={autoApprove} onChange={setAutoApprove} aria-labelledby={labelId} aria-describedby={descId} />
     </div>
   );
 }
@@ -81,16 +64,16 @@ export function PlanReview() {
       </p>
 
       {phase === "idle" || (phase === "error" && !plan) ? (
-        <p className="mt-4 rounded-lg border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+        <EmptyState compact className="mt-4">
           Start a hunt and the planner proposes its criteria and one search query per store.
-        </p>
+        </EmptyState>
       ) : !plan ? (
         <div className="mt-4 space-y-2" aria-hidden="true">
           <p className="flex items-center gap-2 text-sm text-muted">
             <Spinner /> Planner is drafting a plan for “{request?.query}”…
           </p>
           {[72, 58, 64].map((w) => (
-            <div key={w} className="h-3 animate-pulse rounded bg-raised" style={{ width: `${w}%` }} />
+            <Skeleton key={w} width={`${w}%`} />
           ))}
         </div>
       ) : (
@@ -100,9 +83,9 @@ export function PlanReview() {
               <p className="text-sm text-muted">
                 {plan.tasks.length} stores · {plan.criteria.length} criteria
               </p>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted transition-colors hover:bg-raised hover:text-ink"
+              <Button
+                variant="ghost"
+                size="sm"
                 aria-expanded={expanded}
                 aria-controls={detailsId}
                 onClick={() => setShowPlan((v) => !v)}
@@ -112,7 +95,7 @@ export function PlanReview() {
                   className={`size-4 transition-transform ${expanded ? "rotate-180" : ""}`}
                   aria-hidden="true"
                 />
-              </button>
+              </Button>
             </div>
           ) : null}
           <div id={detailsId} hidden={!expanded} className="contents">
@@ -133,9 +116,9 @@ export function PlanReview() {
 
             <div className="min-w-0">
               <h3 className="mb-2 text-sm font-medium">Search query per store</h3>
-              <div className="overflow-x-auto rounded-lg border border-line">
+              <div className="overflow-x-auto rounded-lg border bg-canvas/50 inset-shadow-well">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-raised text-xs text-muted">
+                  <thead className="border-b bg-raised text-xs text-muted">
                     <tr>
                       <th scope="col" className="px-3 py-2 font-medium">
                         Store
@@ -176,25 +159,21 @@ export function PlanReview() {
           <div className="flex flex-wrap items-center gap-3 lg:col-span-2">
             {awaiting ? (
               <>
-                <button type="button" className={btnPrimary} onClick={() => void approve()} disabled={pending}>
-                  {pending ? <Spinner /> : <Play className="size-4" aria-hidden="true" />}
+                <Button variant="primary" icon={Play} loading={pending} onClick={() => void approve()}>
                   {pending ? "Dispatching…" : "Approve & dispatch"}
-                </button>
-                <button type="button" className={btnSecondary} onClick={editQuery} disabled={pending}>
-                  <Pencil className="size-4" aria-hidden="true" />
+                </Button>
+                <Button icon={Pencil} onClick={editQuery} disabled={pending}>
                   Edit query
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-2.5 py-1 text-xs">
-                  <Check className="size-3.5" aria-hidden="true" />
+                <Pill tone="strong" icon={Check}>
                   {approval === "auto" ? "Auto-approved" : approval === "approved" ? "Approved" : "Plan closed"}
-                </span>
-                <button type="button" className={btnSecondary} onClick={editQuery}>
-                  <Pencil className="size-4" aria-hidden="true" />
+                </Pill>
+                <Button icon={Pencil} onClick={editQuery}>
                   Edit query
-                </button>
+                </Button>
               </>
             )}
             {approvalError ? <ErrorNote>Approve failed: {approvalError}</ErrorNote> : null}

@@ -2,30 +2,31 @@ import { CircleQuestionMark, ShieldCheck, ShieldX, TriangleExclamationPoint, typ
 import { useEffect, useId, useRef, useState } from "react";
 import { TRUST_LABELS } from "../lib/labels";
 import type { Trust, TrustLabel } from "../types";
-import { Spinner } from "./ui";
+import { pillStyles, Spinner } from "./ui";
+import type { PillTone } from "./ui";
 
-const STYLES: Record<TrustLabel, { icon: LucideIcon; className: string; text: string; heading: string }> = {
+const STYLES: Record<TrustLabel, { icon: LucideIcon; tone: PillTone; text: string; heading: string }> = {
   real: {
     icon: ShieldCheck,
-    className: "border-safe/40 bg-safe/10 text-safe",
+    tone: "safe",
     text: "text-safe",
     heading: "Real deal: the auditor checked it",
   },
   questionable: {
     icon: TriangleExclamationPoint,
-    className: "border-caution/40 bg-caution/10 text-caution",
+    tone: "caution",
     text: "text-caution",
     heading: "Questionable: read before you buy",
   },
   fake: {
     icon: ShieldX,
-    className: "border-danger/40 bg-danger/10 text-danger",
+    tone: "danger",
     text: "text-danger",
     heading: "Fake deal: the discount doesn't hold up",
   },
   unknown: {
     icon: CircleQuestionMark,
-    className: "border-line-strong bg-raised text-muted",
+    tone: "neutral",
     text: "text-muted",
     heading: "Unknown: not enough evidence",
   },
@@ -78,7 +79,7 @@ export function TrustBadge({ trust, pending }: { trust: Trust | undefined; pendi
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setPinned((p) => !p)}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${style.className}`}
+        className={`${pillStyles({ tone: style.tone })} font-semibold transition duration-150 ease-press hover:brightness-125 active:translate-y-px pointer-coarse:relative pointer-coarse:before:absolute pointer-coarse:before:inset-x-0 pointer-coarse:before:-inset-y-2`}
       >
         {auditing ? <Spinner className="size-3.5" /> : <Icon className="size-3.5" aria-hidden="true" />}
         {auditing ? "Auditing…" : TRUST_LABELS[label]}
@@ -87,7 +88,7 @@ export function TrustBadge({ trust, pending }: { trust: Trust | undefined; pendi
       <div
         id={panelId}
         hidden={!open}
-        className="absolute top-full right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2.5rem))] rounded-xl border border-line-strong bg-raised p-3 text-left shadow-2xl shadow-black/50"
+        className="absolute top-full right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2.5rem))] rounded-xl border border-line-strong bg-raised p-3 text-left shadow-float"
       >
         <p className={`text-xs font-semibold ${auditing ? "text-muted" : style.text}`}>
           {auditing ? "Auditor is checking…" : style.heading}

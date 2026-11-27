@@ -182,3 +182,88 @@ def test_unranked_offers_are_grouped():
     assert [d["store"] for d in ranked] == ["apotea", "apoteket", "apotekhjartat"]
     assert ranked[0]["rank"] == 1 and "unranked_reason" not in ranked[0]
     assert ranked[1]["unranked_reason"] == "shipping not shown" and ranked[2]["unranked_reason"] == "cart mismatch"
+
+
+def test_missing_evidence_is_grouped_by_reason():
+    r = hjartat_result()
+    r["offer"]["was_price"] = 45
+    r["cart"].update(quantity=1, total=35)
+    pending = dealmath.compute_deal(r, 2, [])
+    other = {**pending, "store": "other", "store_name": "Other Shop", "cart_total": None,
+             "reverify": {"status": "failed"}}
+
+    gaps = compare.evidence_gaps([pending, other], ())
+    assert "Shipping cost was unavailable at Apotek Hj\u00e4rtat, Other Shop." in gaps
+    assert "Cart was checked for a different quantity at Apotek Hj\u00e4rtat." in gaps
+    assert "Cart total was unavailable at Other Shop." in gaps
+    assert "Price screenshot was unavailable at Apotek Hj\u00e4rtat, Other Shop." in gaps
+    assert "The advertised discount could not be checked against a 30-day price at Apotek Hj\u00e4rtat, Other Shop." in gaps
+    assert "The price re-check failed at Other Shop." in gaps
+
+
+def test_complete_compare_keeps_model_explanation(monkeypatch):
+    import asyncio
+
+    result = {
+        "store": "apotea", "store_name": "Apotea", "status": "ok",
+        "offer": {"unit_price": 31, "shipping": {"fee": 0}, "in_stock": True},
+        "cart": {"quantity": 2, "total": 62}, "evidence": {"cart": "cart.jpg"},
+    }
+    deals = dealmath.rank([dealmath.compute_deal(result, 2, [])])
+    no_match = {"store": "kronans", "store_name": "Kronans", "status": "not_found", "offer": None}
+    plan = {"quantity": 2, "query": "saffron", "memberships": []}
+
+    async def explain(*args, **kwargs):
+        return {"explanation": "Apotea has the lowest ranked total at 62 kr."}
+
+    monkeypatch.setattr(compare.llm, "chat_json", explain)
+    explanation = asyncio.run(compare.explain(deals, plan, None, scout_results=[result, no_match]))
+    assert explanation["source"] == "llm"
+    assert "Evidence is incomplete" not in explanation["explanation"]
+
+
+def test_hunt_stream_discloses_store_failure_and_missing_cart(monkeypatch, tmp_path):
+    import asyncio
+    from backend import config, engine, planner
+
+    plan = {"quantity": 2, "query": "saffron", "memberships": [],
+            "stores": [{"id": "apotea", "name": "Apotea"}, {"id": "kronans", "name": "Kronans Apotek"}]}
+
+    async def make_plan(*args):
+        return plan
+
+    async def run_scout(self, store, mode, start_url=None):
+        result = {"store": store["id"], "store_name": store["name"], "status": "timeout"}
+        if store["id"] == "apotea":
+            result.update(status="partial", offer={"unit_price": 31, "in_stock": True, "shipping": {"fee": 0}},
+                          evidence={"product": "product.jpg"})
+        return result
+
+    async def unexpected_model(*args, **kwargs):
+        raise AssertionError("Incomplete evidence should use the code-written summary.")
+
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(planner, "make_plan", make_plan)
+    monkeypatch.setattr(engine.Hunt, "_scout", run_scout)
+    monkeypatch.setattr(compare.llm, "chat_json", unexpected_model)
+
+    hunt = engine.Hunt("saffron", 2, [])
+    asyncio.run(hunt.run())
+    ranking = next(event["data"] for event in hunt.cevents if event["data"]["type"] == "ranking.ready")
+    assert ranking["ranking"] == [f"{hunt.id}-apotea"]
+    assert "Among the ranked offers, Apotea has the lowest total at 62 kr" in ranking["summary_md"]
+    assert "**Evidence is incomplete.**" in ranking["summary_md"]
+    assert "Store check did not produce usable price evidence at Kronans Apotek." in ranking["summary_md"]
+    assert "Cart total was unavailable at Apotea." in ranking["summary_md"]
+    assert hunt.result["explanation"]["source"] == "code-fallback"
+    assert hunt.result["explanation"]["rejected"] == []
+
+
+def test_compare_with_unknown_shipping_explains_why_there_is_no_winner():
+    import asyncio
+
+    pending = dealmath.rank([dealmath.compute_deal(hjartat_result(), 2, [])])
+    result = asyncio.run(compare.explain(pending, {}, None))
+    assert "No offer could be ranked" in result["explanation"]
+    assert "Evidence is incomplete." in result["explanation"]
+    assert "Shipping cost was unavailable at Apotek Hj\u00e4rtat." in result["explanation"]

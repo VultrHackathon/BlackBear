@@ -111,7 +111,7 @@ class Hunt:
                 deals = dealmath.rank(deals)
 
             # 8. Compare agent explains code-computed numbers (number-checked)
-            exp = await compare.explain(deals, self.plan, self.metrics)
+            exp = await compare.explain(deals, self.plan, self.metrics, scout_results=results)
             for rj in exp["rejected"]:
                 await self.score.record("explanation_rejected", "compare",
                                         f"numbers not computed by code: {rj.get('bad_numbers')}", "medium")

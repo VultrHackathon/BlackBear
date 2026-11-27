@@ -6,10 +6,10 @@ import { StoreMark } from "./StoreMark";
  */
 export function HeroArt() {
   const floats = [
-    { id: "elgiganten", name: "Elgiganten", pos: "top-[12%] left-[9%]", delay: "0s" },
-    { id: "komplett", name: "Komplett", pos: "top-[46%] left-[4%]", delay: "-1.5s" },
-    { id: "hjartat", name: "Apotek Hjärtat", pos: "bottom-[16%] left-[12%]", delay: "-3s" },
-    { id: "webhallen", name: "Webhallen", pos: "bottom-[11%] right-[16%]", delay: "-4.5s" },
+    { id: "apotekhjartat", name: "Apotek Hjärtat", pos: "top-[12%] left-[9%]", delay: "0s" },
+    { id: "apoteket", name: "Apoteket", pos: "top-[46%] left-[4%]", delay: "-1.5s" },
+    { id: "kronans", name: "Kronans Apotek", pos: "bottom-[16%] left-[12%]", delay: "-3s" },
+    { id: "apotea", name: "Apotea", pos: "bottom-[11%] right-[16%]", delay: "-4.5s" },
   ];
   return (
     <div aria-hidden="true" className="relative hidden lg:block">
@@ -33,18 +33,22 @@ export function HeroArt() {
                   ))}
                   <span className="ml-[2%] h-[45%] flex-1 rounded-full bg-white" />
                 </div>
-                <div className="h-[8%] bg-[#1F4E8C]" />
+                <div className="h-[8%] bg-[#1F6B45]" />
                 <div className="grid grid-cols-2 gap-[5%] p-[5%]">
                   <div className="grid aspect-square place-items-center rounded-md bg-white shadow-sm">
-                    <span className="block aspect-[16/10] w-[70%] rounded-[3px] border-[3px] border-[#2a2c31] bg-linear-to-br from-[#3a3d44] to-[#17181b]" />
+                    <img
+                      src={`${import.meta.env.BASE_URL}products/alvedon-500mg.jpg`}
+                      alt=""
+                      className="w-[80%] object-contain"
+                    />
                   </div>
                   <div className="space-y-[8%] pt-[4%]">
                     <span className="block h-2 w-[85%] rounded-full bg-black/70" />
                     <span className="block h-2 w-[55%] rounded-full bg-black/20" />
                     <span className="block text-[clamp(0.9rem,2vw,1.6rem)] leading-none font-extrabold text-[#d92d20]">
-                      1 299:-
+                      34:-
                     </span>
-                    <span className="block h-[18%] w-[70%] rounded-md bg-[#1F4E8C]" />
+                    <span className="block h-[18%] w-[70%] rounded-md bg-[#1F6B45]" />
                   </div>
                 </div>
                 <span className="scan-beam hidden motion-safe:block motion-safe:animate-scan" />

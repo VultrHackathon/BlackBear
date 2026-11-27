@@ -22,6 +22,8 @@ export interface HuntActions {
   editQuery: () => void;
   setAutoApprove: (value: boolean) => void;
   reverify: (offerId: string) => Promise<void>;
+  /** Approve-before-submit gate: approve or deny a paused agent action. */
+  resolveGate: (approvalId: string, approve: boolean) => Promise<string | null>;
   toggleCompare: (offerId: string) => void;
   clearCompare: () => void;
   /** HuntForm registers its query input so "Edit query" can focus it. */
@@ -159,6 +161,16 @@ export function HuntProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const resolveGate = useCallback(async (approvalId: string, approve: boolean) => {
+    dispatch({ type: "gate/sending", id: approvalId });
+    try {
+      await api.resolveApproval(approvalId, approve);
+      return null;
+    } catch (err) {
+      return errorMessage(err); // the stream's approval.resolved event is the source of truth
+    }
+  }, []);
+
   const toggleCompare = useCallback((offerId: string) => dispatch({ type: "compare/toggle", offerId }), []);
   const clearCompare = useCallback(() => dispatch({ type: "compare/clear" }), []);
   const registerQueryInput = useCallback((el: HTMLInputElement | null) => {
@@ -172,11 +184,12 @@ export function HuntProvider({ children }: { children: ReactNode }) {
       editQuery,
       setAutoApprove,
       reverify,
+      resolveGate,
       toggleCompare,
       clearCompare,
       registerQueryInput,
     }),
-    [startHunt, approve, editQuery, setAutoApprove, reverify, toggleCompare, clearCompare, registerQueryInput],
+    [startHunt, approve, editQuery, setAutoApprove, reverify, resolveGate, toggleCompare, clearCompare, registerQueryInput],
   );
 
   return (

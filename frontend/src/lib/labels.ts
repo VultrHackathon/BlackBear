@@ -56,5 +56,7 @@ export function formatAction(action: AgentAction): string {
       return `extract ${target}`.trim();
     case "add_to_cart":
       return `add_to_cart ${target}${quoted}`.trim();
+    case "retry":
+      return `↻ retry · ${action.text ?? "trying again"}`;
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { ApprovalGate } from "./components/ApprovalGate";
 import { CompareDrawer } from "./components/CompareDrawer";
 import { Header } from "./components/Header";
 import { HuntForm } from "./components/HuntForm";
@@ -135,6 +136,7 @@ export default function App() {
         className={compare.length === 2 ? "h-[min(70vh,44rem)]" : compare.length === 1 ? "h-20" : "hidden"}
       />
       <CompareDrawer />
+      <ApprovalGate />
     </>
   );
 }

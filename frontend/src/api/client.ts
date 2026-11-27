@@ -89,6 +89,12 @@ export const api = {
     await request(`/api/hunts/${enc(huntId)}/approve`, { method: "POST" });
   },
 
+  /** Approve-before-submit gate: approve or deny a paused agent action. */
+  async resolveApproval(approvalId: string, approve: boolean): Promise<void> {
+    if (USE_MOCK) return;
+    await request(`/api/approvals/${enc(approvalId)}`, { method: "POST", json: { approve } });
+  },
+
   async reverifyOffer(offerId: string): Promise<ReverifyResponse> {
     const raw = USE_MOCK
       ? await (await loadMock()).mockServer.reverifyOffer(offerId)

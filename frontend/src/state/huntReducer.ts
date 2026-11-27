@@ -126,6 +126,21 @@ export interface HuntState {
 
   reverify: Record<string, ReverifyState>;
   compare: string[];
+  /** Approve-before-submit gates, newest last. */
+  gates: GateEntry[];
+}
+
+export interface GateEntry {
+  id: string;
+  storeId: string;
+  step: number;
+  action: AgentAction;
+  reason: string;
+  screenshot: string | null;
+  requestedAt: number;
+  timeoutS: number;
+  status: "pending" | "sending" | "approved" | "denied";
+  by: string;
 }
 
 /* ---------- Actions ---------- */
@@ -148,7 +163,8 @@ export type HuntAction =
   | { type: "reverify/done"; result: ReverifyResponse }
   | { type: "reverify/failed"; offerId: string; message: string }
   | { type: "compare/toggle"; offerId: string }
-  | { type: "compare/clear" };
+  | { type: "compare/clear" }
+  | { type: "gate/sending"; id: string };
 
 /* ---------- Init ---------- */
 
@@ -177,6 +193,7 @@ const huntSlice = () => ({
   eventCount: 0,
   reverify: {},
   compare: [],
+  gates: [] as GateEntry[],
 });
 
 export function createInitialState(autoApprove = false): HuntState {
@@ -336,6 +353,35 @@ function applyEvent(state: HuntState, e: HuntEvent, at: number): HuntState {
       });
     }
 
+    case "approval.required": {
+      if (s.gates.some((g) => g.id === e.approval_id)) return s;
+      const gate: GateEntry = {
+        id: e.approval_id,
+        storeId: e.store_id,
+        step: e.step,
+        action: e.action,
+        reason: e.reason,
+        screenshot: safeImageSrc(e.screenshot_url),
+        requestedAt: at,
+        timeoutS: e.timeout_s,
+        status: "pending",
+        by: "",
+      };
+      const run = runOf(s, e.store_id);
+      return withRun({ ...s, gates: [...s.gates, gate].slice(-20) }, {
+        ...run,
+        message: "Paused: waiting for your approval",
+      });
+    }
+
+    case "approval.resolved":
+      return {
+        ...s,
+        gates: s.gates.map((g) =>
+          g.id === e.approval_id ? { ...g, status: e.approved ? "approved" : "denied", by: e.by } : g,
+        ),
+      };
+
     case "ranking.ready":
       return { ...s, ranking: e.ranking, summaryMd: e.summary_md };
 
@@ -362,6 +408,8 @@ function applyEvent(state: HuntState, e: HuntEvent, at: number): HuntState {
 
 export function huntReducer(state: HuntState, action: HuntAction): HuntState {
   switch (action.type) {
+    case "gate/sending":
+      return { ...state, gates: state.gates.map((g) => (g.id === action.id ? { ...g, status: "sending" } : g)) };
     case "config/loaded":
       return { ...state, config: action.config, configStatus: "ready", configError: null };
 

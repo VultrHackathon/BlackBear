@@ -10,8 +10,8 @@ from urllib.parse import urlsplit
 from . import config, stores
 
 TRUST = {"verified": "real", "questionable": "questionable", "mismatch": "fake", "unverified": "unknown"}
-ACTION = {"click": "click", "type": "type", "scroll": "scroll", "goto": "goto", "back": "goto", "wait": "scroll",
-          "extract": "extract", "done": "add_to_cart", "fail": "extract"}
+ACTION = {"click": "click", "type": "type", "scroll": "scroll", "goto": "goto", "back": "goto", "wait": "retry",
+          "retry": "retry", "extract": "extract", "done": "add_to_cart", "fail": "extract"}
 
 
 def membership_labels():
@@ -117,6 +117,10 @@ def security_out(ev):
     if kind == "explanation_rejected":
         return {"store_id": store, "kind": "unverified_number", "layer": "number_check", "detail": detail,
                 "blocked": True}
+    if kind == "approval_gate":
+        denied = detail.startswith("denied")
+        return {"store_id": store, "kind": "checkout_attempt", "layer": "approval_gate", "detail": detail,
+                "blocked": denied}
     if kind == "timeout_enforced":
         return {"store_id": store, "kind": "time_limit", "layer": "resource_limit", "detail": detail, "blocked": True}
     return {"store_id": store, "kind": kind, "layer": "guard", "detail": detail, "blocked": False}
@@ -157,12 +161,29 @@ def translate(hunt, ev):
             act["target"] = a["url"]
         if a.get("text"):
             act["text"] = str(a["text"])[:200]
+        if act["type"] == "retry":
+            act["text"] = str(a.get("thought", "retrying"))[:200]
         out.append({"type": "store.action", "store_id": d["store"], "step": d["step"], "action": act,
                     "allowed": bool(d.get("allowed")),
+                    **({"approved": d["approved"]} if d.get("approved") is not None else {}),
                     **({"reason": d["blocked_reason"]} if d.get("blocked_reason") else
                        ({"reason": a.get("thought", "")[:200]} if a.get("thought") else {}))})
         if d.get("screenshot"):
             out.append({"type": "store.screenshot", "store_id": d["store"], "url": shot_url(hunt.id, d["screenshot"])})
+    elif k == "approval":
+        if d["state"] == "required":
+            a = d.get("action") or {}
+            act = {"type": ACTION.get(a.get("action"), "click")}
+            if a.get("i") is not None:
+                act["target"] = f"[{a['i']}]"
+            if a.get("url"):
+                act["target"] = a["url"]
+            out.append({"type": "approval.required", "approval_id": d["id"], "store_id": d["store"],
+                        "step": d.get("step", 0), "action": act, "reason": d.get("reason", ""),
+                        "screenshot_url": shot_url(hunt.id, d.get("screenshot")), "timeout_s": d.get("timeout_s", 60)})
+        else:
+            out.append({"type": "approval.resolved", "approval_id": d["id"], "store_id": d["store"],
+                        "approved": d["state"] == "approved", "by": d.get("by", "")})
     elif k == "offer_seen":
         out.append({"type": "store.status", "store_id": d["store"], "status": "extracting"})
     elif k == "scout_result":

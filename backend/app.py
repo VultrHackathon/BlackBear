@@ -147,6 +147,24 @@ async def reverify_offer(offer_id: str):
             "screenshot_url": contract.shot_url(h.id, ev.get("cart") or ev.get("product"))}
 
 
+class ApprovalIn(BaseModel):
+    approve: bool
+
+
+@app.post("/api/approvals/{approval_id}")
+async def resolve_approval(approval_id: str, body: ApprovalIn):
+    """Approve-before-submit gate: a human approves or denies a paused agent action."""
+    hid = approval_id.split("-a")[0]
+    h = engine.HUNTS.get(hid) or _404()
+    try:
+        changed = h.resolve_approval(approval_id, body.approve)
+    except KeyError:
+        _404()
+    if not changed:
+        raise HTTPException(409, "This approval was already decided or timed out.")
+    return Response(status_code=204)
+
+
 class CompareIn(BaseModel):
     offer_a: str
     offer_b: str

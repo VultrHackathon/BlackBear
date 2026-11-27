@@ -59,7 +59,7 @@ export const STORE_STATUSES = [
 ] as const;
 export type StoreStatus = (typeof STORE_STATUSES)[number];
 
-export const ACTION_TYPES = ["goto", "click", "type", "scroll", "extract", "add_to_cart"] as const;
+export const ACTION_TYPES = ["goto", "click", "type", "scroll", "extract", "add_to_cart", "retry"] as const;
 export type ActionType = (typeof ACTION_TYPES)[number];
 
 export interface AgentAction {
@@ -196,6 +196,18 @@ export type HuntEvent =
     }
   | { type: "ranking.ready"; ranking: string[]; summary_md: string }
   | ({ type: "metrics" } & Metrics)
+  | {
+      /** Approve-before-submit gate: an agent is paused until a human decides. */
+      type: "approval.required";
+      approval_id: string;
+      store_id: string;
+      step: number;
+      action: AgentAction;
+      reason: string;
+      screenshot_url: string;
+      timeout_s: number;
+    }
+  | { type: "approval.resolved"; approval_id: string; store_id: string; approved: boolean; by: string }
   | { type: "hunt.done"; elapsed_s: number }
   | { type: "error"; message: string };
 

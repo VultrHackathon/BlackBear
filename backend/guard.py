@@ -13,14 +13,21 @@ from urllib.parse import urlsplit
 
 from . import config, llm, stores
 
+# Never allowed, not even with human approval: irreversible or credential-bearing steps.
 FORBIDDEN = [
-    (r"\b(till\s+kassan|kassa|kassan|checkout|check\s*out|slutför|genomför\s+köp|bekräfta\s+köp|"
-     r"place\s+order|complete\s+(order|purchase)|lägg\s+order|beställ\s+nu)\b", "checkout"),
+    (r"\b(slutför|genomför\s+köp|bekräfta\s+köp|place\s+order|complete\s+(order|purchase)|"
+     r"lägg\s+order|beställ\s+nu|köp\s+nu|buy\s+now|submit\s+order)\b", "placing an order"),
     (r"\b(logga\s+in|log\s*in|sign\s*in|mina\s+sidor|my\s+account|bankid|lösenord|password)\b", "login"),
     (r"\b(betala|betalning|payment|pay\s+now|klarna|swish|kortnummer|card\s+number|cvc|paypal)\b", "payment"),
     (r"\b(skapa\s+konto|bli\s+medlem|register|sign\s*up|registrera)\b", "account creation"),
 ]
-FORBIDDEN_URL = re.compile(r"/(checkout|kassa|kassan|login|logga-in|account|mina-sidor|payment|betalning|order)(/|$|\?)", re.I)
+FORBIDDEN_URL = re.compile(r"/(login|logga-in|account|mina-sidor|payment|betalning|order)(/|$|\?)", re.I)
+
+# Approve-before-submit gate: opening the checkout is the first step toward an
+# irreversible purchase, so the agent pauses and a human decides. Even when approved,
+# everything in FORBIDDEN (placing the order, payment, login) stays blocked.
+GATED = re.compile(r"\b(till\s+kassan|gå\s+till\s+kassan|kassa|kassan|checkout|check\s*out)\b", re.I)
+GATED_URL = re.compile(r"/(checkout|kassa|kassan)(/|$|\?)", re.I)
 
 INJECTION_PATTERNS = [
     r"ignore (all |any )?(previous|prior|above) instructions",
@@ -38,7 +45,8 @@ class Scoreboard:
         self.emit = emit
         self.counts = {"egress_blocked": 0, "trackers_blocked": 0, "metadata_or_private_blocked": 0,
                        "actions_blocked": 0, "injections_detected": 0, "steps_checked": 0,
-                       "sandboxes_created": 0, "sandboxes_destroyed": 0}
+                       "sandboxes_created": 0, "sandboxes_destroyed": 0,
+                       "approvals_requested": 0, "approvals_denied": 0}
         self.events = []
         self._seen = set()
 
@@ -70,40 +78,51 @@ class Scoreboard:
 
 
 def check_action(store_id, action, elements):
-    """Action firewall. Returns (allowed, reason)."""
+    """Action firewall. Returns (allowed, reason); gated actions count as not allowed."""
+    verdict, reason = classify_action(store_id, action, elements)
+    return verdict == "allow", reason
+
+
+def classify_action(store_id, action, elements):
+    """Action firewall with three outcomes: ("allow"|"gate"|"block", reason).
+    "gate" means the action needs a human's approval before it may run."""
     kind = action.get("action")
     if kind in ("goto",):
         url = action.get("url", "")
         host = urlsplit(url).hostname or ""
         if urlsplit(url).scheme not in ("http", "https"):
-            return False, f"non-web URL scheme: {url[:80]}"
+            return "block", f"non-web URL scheme: {url[:80]}"
         if not stores.host_allowed(store_id, host):
-            return False, f"navigation outside the store's domains: {host}"
+            return "block", f"navigation outside the store's domains: {host}"
         if FORBIDDEN_URL.search(url):
-            return False, f"forbidden page (checkout/login/payment): {url[:100]}"
+            return "block", f"forbidden page (login/account/payment/order): {url[:100]}"
+        if GATED_URL.search(url):
+            return "gate", f"opening the checkout needs your approval: {url[:100]}"
     if kind in ("click", "type"):
         i = action.get("i")
         el = next((e for e in elements if e.get("i") == i), None)
         if el is None:
-            return False, f"element [{i}] does not exist on this page"
+            return "block", f"element [{i}] does not exist on this page"
         label = f"{el.get('name', '')} {el.get('href', '') or ''}"
         for pat, what in FORBIDDEN:
             if re.search(pat, label, re.I):
-                return False, f"{what} is not allowed: [{i}] '{el.get('name', '')[:60]}'"
+                return "block", f"{what} is not allowed: [{i}] '{el.get('name', '')[:60]}'"
         if el.get("href") and FORBIDDEN_URL.search(el["href"]):
-            return False, f"link leads to a forbidden page: {el['href'][:100]}"
+            return "block", f"link leads to a forbidden page: {el['href'][:100]}"
         if el.get("href"):
             host = urlsplit(el["href"]).hostname or ""
             if host and not stores.host_allowed(store_id, host):
-                return False, f"link leaves the store's domains: {host}"
+                return "block", f"link leaves the store's domains: {host}"
+        if kind == "click" and (GATED.search(el.get("name", "")) or (el.get("href") and GATED_URL.search(el["href"]))):
+            return "gate", f"opening the checkout needs your approval: [{i}] '{el.get('name', '')[:60]}'"
         if kind == "type":
             text = str(action.get("text", ""))
             digits = re.sub(r"[\s.\-/]", "", text)
             if re.search(r"\d{10,19}", digits) or re.search(r"@|password|lösen|cvc|cvv", text, re.I):
-                return False, "typing personal or payment data is not allowed"
+                return "block", "typing personal or payment data is not allowed"
             if el.get("role") in ("password", "email", "tel"):
-                return False, f"typing into a {el.get('role')} field is not allowed"
-    return True, ""
+                return "block", f"typing into a {el.get('role')} field is not allowed"
+    return "allow", ""
 
 
 def heuristic_injection(text):

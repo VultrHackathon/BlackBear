@@ -56,7 +56,9 @@ def _elements_text(els):
 
 
 class Scout:
-    def __init__(self, sandbox, store, plan, emit, scoreboard, metrics, evidence_dir, mode="hunt", start_url=None):
+    def __init__(self, sandbox, store, plan, emit, scoreboard, metrics, evidence_dir, mode="hunt", start_url=None,
+                 approver=None):
+        self.approver = approver  # async (store_id, step, action, reason, screenshot) -> bool
         self.sb, self.store, self.plan = sandbox, store, plan
         self.emit, self.score, self.metrics = emit, scoreboard, metrics
         self.dir = evidence_dir
@@ -74,6 +76,21 @@ class Scout:
         name = f"{self.mode}-{self.store['id']}-{step:02d}-{tag}.jpg"
         (self.dir / name).write_bytes(base64.b64decode(page["screenshot"]))
         return name
+
+    async def retry(self, step, why):
+        """Make a retry visible in the dashboard's execution loop."""
+        await self.emit("step", {"store": self.store["id"], "mode": self.mode, "step": step, "allowed": True,
+                                 "action": {"action": "retry", "thought": why}})
+
+    async def _gate(self, sid, step, action, elements, shot):
+        """Action firewall + approve-before-submit gate. Returns (allowed, reason, approved_by_human)."""
+        verdict, why = guard.classify_action(sid, action, elements)
+        if verdict == "gate":
+            approved = bool(self.approver) and await self.approver(sid, step, action, why, shot)
+            if approved:
+                return True, "approved by a human: view the checkout only; placing the order stays blocked", True
+            return False, why.replace("needs your approval", "was not approved") + " (denied or no answer in time)", False
+        return verdict == "allow", why, None
 
     async def red_team(self):
         """Scripted replay of what a prompt-injected agent would try on the hostile demo page.
@@ -101,10 +118,10 @@ class Scout:
         ]
         for n, a in enumerate(attacks, 2):
             self.score.counts["steps_checked"] += 1
-            ok, why = guard.check_action(sid, a, els)
+            ok, why, approved = await self._gate(sid, n, a, els, shot)
             await self.emit("step", {"store": sid, "mode": self.mode, "step": n, "url": page.get("url"),
                                      "title": page.get("title"), "action": a, "allowed": ok,
-                                     "blocked_reason": why, "screenshot": shot})
+                                     "blocked_reason": why, "screenshot": shot, "approved": approved})
             if not ok:
                 self.score.counts["actions_blocked"] += 1
                 await self.score.record("action_blocked", sid, why, "high")
@@ -149,10 +166,10 @@ class Scout:
 
             decision = await self._decide(page, step, injected)
             self.score.counts["steps_checked"] += 1
-            ok, why = guard.check_action(sid, decision, page.get("elements", []))
+            ok, why, approved = await self._gate(sid, step, decision, page.get("elements", []), shot)
             await self.emit("step", {"store": sid, "mode": self.mode, "step": step, "url": page.get("url"),
                                      "title": page.get("title"), "action": decision, "allowed": ok,
-                                     "blocked_reason": why, "screenshot": shot})
+                                     "blocked_reason": why, "screenshot": shot, "approved": approved})
             if not ok:
                 self.score.counts["actions_blocked"] += 1
                 await self.score.record("action_blocked", sid, why, "high")
@@ -181,6 +198,8 @@ class Scout:
                 self.history.append({"step": step, "action": "wait", "result": "model error"})
                 continue
             res = await self._act(decision)
+            if not res.get("ok"):
+                await self.retry(step, f"{kind} failed ({res.get('error', '')[:90]}); the agent will try another way")
             self.history.append({"step": step, "action": {k: v for k, v in decision.items() if k != "thought"},
                                  "result": "ok" if res.get("ok") else f"error: {res.get('error', '')[:150]}"})
         return self.result("step_limit" if not self.offer else "partial")
@@ -220,9 +239,12 @@ class Scout:
         system = SYSTEM + (VERIFY_SUFFIX if self.mode == "verify" else "")
 
         try:
+            async def on_retry(n, of, err):
+                await self.retry(step, f"model call failed ({err[:70]}); retry {n} of {of}")
             return await llm.chat_json(config.SCOUT_MODEL, [{"role": "system", "content": system},
                                                             {"role": "user", "content": content}],
-                                       self.metrics, max_tokens=1500, extra={"reasoning_effort": "low"})
+                                       self.metrics, max_tokens=1500, extra={"reasoning_effort": "low"},
+                                       on_retry=on_retry)
         except Exception as e:
             return {"action": "wait", "thought": f"model error, retrying: {str(e)[:80]}"}
 

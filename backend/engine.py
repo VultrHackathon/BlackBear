@@ -8,6 +8,9 @@ import uuid
 from . import compare, config, contract, dealmath, dispatcher, guard, llm, planner, scout
 
 
+APPROVAL_TIMEOUT_S = 60  # unanswered approvals are denied
+
+
 class Hunt:
     def __init__(self, query, quantity, memberships, auto_approve=True, include_trap=False):
         self.include_trap = include_trap
@@ -18,6 +21,7 @@ class Hunt:
         self.cevents: list = []      # contract events (frontend API)
         self.csubs: set = set()
         self._sb_open: dict = {}
+        self.approvals: dict = {}
         self._sb_done = 0.0
         self.id = uuid.uuid4().hex[:10]
         self.query, self.quantity, self.memberships = query, int(quantity), list(memberships)
@@ -135,11 +139,21 @@ class Hunt:
                                         "limits": {"memory": config.SANDBOX_MEMORY, "cpus": config.SANDBOX_CPUS,
                                                    "timeout_s": config.SANDBOX_TIMEOUT_S, "runtime": config.SANDBOX_RUNTIME,
                                                    "egress": store["allow"]}})
-            await sb.start()
+            try:
+                await sb.start()
+            except Exception as e:  # one visible retry with a brand-new sandbox
+                await self.emit("step", {"store": sid, "mode": mode, "step": 0, "allowed": True,
+                                         "action": {"action": "retry",
+                                                    "thought": f"sandbox failed to start ({str(e)[:80]}); "
+                                                               "starting a fresh one"}})
+                await sb.destroy()
+                sb = dispatcher.Sandbox(sid, self.score.proxy_event)
+                await sb.start()
             self._sb_open[sb.id] = time.time()
             self.score.counts["sandboxes_created"] += 1
             await self.emit("sandbox", {"store": sid, "mode": mode, "state": "running", "sandbox": sb.id})
-            sc = scout.Scout(sb, store, self.plan, self.emit, self.score, self.metrics, self.dir, mode, start_url)
+            sc = scout.Scout(sb, store, self.plan, self.emit, self.score, self.metrics, self.dir, mode, start_url,
+                             approver=self.request_approval)
             try:
                 res = await asyncio.wait_for(sc.run(), config.SANDBOX_TIMEOUT_S)
             except asyncio.TimeoutError:
@@ -156,6 +170,40 @@ class Hunt:
             await self.emit("sandbox", {"store": sid, "mode": mode, "state": "destroyed", "sandbox": sb.id})
         await self.emit("scout_result", res)
         return res
+
+    async def request_approval(self, store_id, step, action, reason, screenshot):
+        """Approve-before-submit gate: pause this scout until a human decides (fail-safe: deny on timeout)."""
+        aid = f"{self.id}-a{len(self.approvals) + 1}"
+        gate = {"event": asyncio.Event(), "approved": None, "store": store_id}
+        self.approvals[aid] = gate
+        self.score.counts["approvals_requested"] += 1
+        await self.emit("approval", {"id": aid, "state": "required", "store": store_id, "step": step,
+                                     "action": {k: v for k, v in action.items()}, "reason": reason,
+                                     "screenshot": screenshot, "timeout_s": APPROVAL_TIMEOUT_S})
+        try:
+            await asyncio.wait_for(gate["event"].wait(), APPROVAL_TIMEOUT_S)
+            by = "you"
+        except asyncio.TimeoutError:
+            gate["approved"], by = False, "timeout"
+        approved = bool(gate["approved"])
+        if not approved:
+            self.score.counts["approvals_denied"] += 1
+        await self.emit("approval", {"id": aid, "state": "approved" if approved else "denied", "store": store_id,
+                                     "by": by})
+        await self.score.record("approval_gate", store_id,
+                                f"{'approved' if approved else 'denied'} by {by}: {reason}",
+                                "medium" if approved else "high")
+        return approved
+
+    def resolve_approval(self, aid, approve):
+        gate = self.approvals.get(aid)
+        if not gate:
+            raise KeyError(aid)
+        if gate["event"].is_set() or gate["approved"] is not None:
+            return False
+        gate["approved"] = bool(approve)
+        gate["event"].set()
+        return True
 
     async def reverify_offer(self, store_id):
         """On-demand re-verify of one offer in a brand-new sandbox (POST /api/offers/{id}/reverify)."""

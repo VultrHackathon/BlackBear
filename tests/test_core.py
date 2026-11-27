@@ -267,3 +267,51 @@ def test_compare_with_unknown_shipping_explains_why_there_is_no_winner():
     assert "No offer could be ranked" in result["explanation"]
     assert "Evidence is incomplete." in result["explanation"]
     assert "Shipping cost was unavailable at Apotek Hj\u00e4rtat." in result["explanation"]
+
+
+def test_checkout_is_gated_but_placing_an_order_is_never_allowed():
+    els = [{"i": 0, "name": "Till kassan", "href": "https://www.apotekhjartat.se/kassan"},
+           {"i": 1, "name": "Slutför köp"}, {"i": 2, "name": "Betala med Klarna"},
+           {"i": 3, "name": "Lägg i varukorgen"}]
+    assert guard.classify_action("apotekhjartat", {"action": "click", "i": 0}, els)[0] == "gate"
+    assert guard.classify_action("apotekhjartat", {"action": "goto", "url": "https://www.apotekhjartat.se/checkout/"}, els)[0] == "gate"
+    assert guard.classify_action("apotekhjartat", {"action": "click", "i": 1}, els)[0] == "block"
+    assert guard.classify_action("apotekhjartat", {"action": "click", "i": 2}, els)[0] == "block"
+    assert guard.classify_action("apotekhjartat", {"action": "click", "i": 3}, els)[0] == "allow"
+    assert not guard.check_action("apotekhjartat", {"action": "click", "i": 0}, els)[0]  # gated != allowed
+
+
+def test_approval_gate_approve_deny_and_timeout(monkeypatch, tmp_path):
+    import asyncio
+    from backend import config, contract, engine
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(engine, "APPROVAL_TIMEOUT_S", 0.2)
+
+    async def run():
+        h = engine.Hunt("saffron", 2, [])
+        act = {"action": "click", "i": 0}
+        task = asyncio.create_task(h.request_approval("apotea", 3, act, "opening the checkout needs your approval", None))
+        await asyncio.sleep(0.01)
+        aid = next(iter(h.approvals))
+        assert h.resolve_approval(aid, True) and not h.resolve_approval(aid, False)
+        assert await task is True
+        assert await h.request_approval("apotea", 4, act, "x", None) is False      # timeout -> deny
+        types = [e["data"]["type"] for e in h.cevents]
+        assert types.count("approval.required") == 2 and types.count("approval.resolved") == 2
+        req = next(e["data"] for e in h.cevents if e["data"]["type"] == "approval.required")
+        assert req["approval_id"] == aid and req["action"]["type"] == "click"
+        assert h.score.counts["approvals_requested"] == 2 and h.score.counts["approvals_denied"] == 1
+    asyncio.run(run())
+
+
+def test_retry_steps_reach_the_dashboard():
+    from backend import contract
+
+    class H:
+        id, query, deals, result = "abcdef0123", "q", [], None
+        def sandbox_seconds(self): return 0
+
+    ev = {"t": 1, "kind": "step", "data": {"store": "apotea", "mode": "hunt", "step": 5, "allowed": True,
+                                         "action": {"action": "retry", "thought": "model call failed; retry 1 of 2"}}}
+    out = contract.translate(H(), ev)
+    assert out[0]["action"] == {"type": "retry", "text": "model call failed; retry 1 of 2"}

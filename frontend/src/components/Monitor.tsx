@@ -101,8 +101,9 @@ export function ActionLine({
   detailed?: boolean;
 }) {
   const text = formatAction(entry.action);
+  const retry = entry.action.type === "retry";
   return (
-    <li className={`motion-safe:animate-fade-in ${entry.allowed ? "text-ink/90" : "text-danger"}`}>
+    <li className={`motion-safe:animate-fade-in ${entry.allowed ? (retry ? "text-caution" : "text-ink/90") : "text-danger"}`}>
       <div className="flex min-w-0 gap-1.5">
         <span className="shrink-0 text-muted tabular-nums">{String(entry.step).padStart(2, "0")}</span>
         {entry.allowed ? null : (
@@ -128,10 +129,11 @@ export function ActionLine({
  */
 export function ActionTicks({ actions }: { actions: ActionEntry[] }) {
   const blocked = actions.filter((a) => !a.allowed).length;
+  const retries = actions.filter((a) => a.action.type === "retry").length;
   const label =
     actions.length === 0
       ? "No actions yet"
-      : `${actions.length} recent ${actions.length === 1 ? "action" : "actions"}${blocked ? `, ${blocked} blocked` : ""}`;
+      : `${actions.length} recent ${actions.length === 1 ? "action" : "actions"}${blocked ? `, ${blocked} blocked` : ""}${retries ? `, ${retries} ${retries === 1 ? "retry" : "retries"}` : ""}`;
   return (
     <div role="img" aria-label={label} className="flex h-2 gap-0.5">
       {Array.from({ length: MAX_ACTIONS }, (_, i) => {
@@ -140,7 +142,9 @@ export function ActionTicks({ actions }: { actions: ActionEntry[] }) {
           <span
             key={a ? a.key : `empty-${i}`}
             className={`flex-1 rounded-[1px] ${
-              a ? `motion-safe:animate-fade-in ${a.allowed ? "bg-ink/75" : "bg-danger"}` : "bg-line"
+              a
+                ? `motion-safe:animate-fade-in ${!a.allowed ? "bg-danger" : a.action.type === "retry" ? "bg-caution" : "bg-ink/75"}`
+                : "bg-line"
             }`}
           />
         );

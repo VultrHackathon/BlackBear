@@ -249,6 +249,28 @@ export function sanitizeEvent(v: unknown): HuntEvent | null {
         cost_usd: num(v.cost_usd) ?? 0,
         sandbox_seconds: num(v.sandbox_seconds) ?? 0,
       };
+    case "approval.required": {
+      const approval_id = str(v.approval_id, 200);
+      const store_id = str(v.store_id, 100);
+      const action = sanitizeAction(v.action);
+      if (!approval_id || !store_id || !action) return null;
+      return {
+        type: "approval.required",
+        approval_id,
+        store_id,
+        step: Math.max(0, Math.round(num(v.step) ?? 0)),
+        action,
+        reason: str(v.reason, 600) ?? "",
+        screenshot_url: str(v.screenshot_url, 3_000_000) ?? "",
+        timeout_s: Math.min(600, Math.max(1, num(v.timeout_s) ?? 60)),
+      };
+    }
+    case "approval.resolved": {
+      const approval_id = str(v.approval_id, 200);
+      const store_id = str(v.store_id, 100);
+      if (!approval_id || !store_id) return null;
+      return { type: "approval.resolved", approval_id, store_id, approved: bool(v.approved) ?? false, by: str(v.by, 40) ?? "" };
+    }
     case "hunt.done":
       return { type: "hunt.done", elapsed_s: num(v.elapsed_s) ?? 0 };
     case "error":

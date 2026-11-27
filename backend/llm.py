@@ -86,7 +86,7 @@ async def available_models():
 
 
 async def chat(model, messages, metrics: Metrics | None = None, max_tokens=1500,
-               temperature=0.2, json_mode=False, retries=2, extra=None):
+               temperature=0.2, json_mode=False, retries=2, extra=None, on_retry=None):
     body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temperature,
             **(extra or {})}
     if json_mode:
@@ -119,6 +119,11 @@ async def chat(model, messages, metrics: Metrics | None = None, max_tokens=1500,
             raise
         except Exception as e:
             last = e
+            if attempt < retries and on_retry:
+                try:
+                    await on_retry(attempt + 1, retries, str(e))
+                except Exception:
+                    pass
             await asyncio.sleep(1.5 * (attempt + 1))
     raise RuntimeError(f"LLM call failed: {last}")
 

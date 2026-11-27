@@ -246,8 +246,8 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
 
   <h2 style="margin-top:30px">Popular hunts</h2>
   <div class="cats">
-    <a class="card cat" href="javascript:startHunt('Hjärtats saffran 0,5 g')"><div class="pimg" style="width:64px;padding:4px"><img src="https://assets.icanet.se/image/upload/v1715154956/1015751_oga0eq.webp" alt="Hjärtats saffran"></div><div><b>Hjärtats saffran 0,5 g</b><div class="xs mut">Lucia season · 4 stores</div></div></a>
-    <a class="card cat" href="javascript:startHunt('Alvedon 500 mg 20 st')"><div class="pimg" style="width:64px;padding:4px"><img src="https://media.apotea.se/product-images/L/alvedon-novum-filmdragerad-tablett-500-mg-20-st-2-9.jpg" alt="Alvedon"></div><div><b>Alvedon 500 mg, 20 st</b><div class="xs mut">4 stores</div></div></a>
+    <a class="card cat" href="javascript:startHunt('Hjärtats saffran 0,5 g')"><div class="pimg" style="width:64px;padding:4px"><img src="img/saffran.webp" alt="Hjärtats saffran"></div><div><b>Hjärtats saffran 0,5 g</b><div class="xs mut">Lucia season · 4 stores</div></div></a>
+    <a class="card cat" href="javascript:startHunt('Alvedon 500 mg 20 st')"><div class="pimg" style="width:64px;padding:4px"><img src="img/apotea.jpg" alt="Alvedon"></div><div><b>Alvedon 500 mg, 20 st</b><div class="xs mut">4 stores</div></div></a>
   </div>
 </div></section>
 
@@ -260,7 +260,8 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
   </div>
   <div class="card live" id="live" style="display:none">
     <div class="lh"><span class="dotlive" id="ldot"></span><span class="livetag" id="ltag">LIVE</span>
-      <b id="lstage">Planning the search…</b><span class="mut sm" id="lcount"></span><span class="mut sm" style="margin-left:auto" id="ltime">0:00</span></div>
+      <b id="lstage">Planning the search…</b><span class="mut sm" id="lcount"></span><span class="mut sm" style="margin-left:auto" id="ltime">0:00</span>
+      <button class="btn sm" id="ltoggle" style="display:none" onclick="const r=document.getElementById('lrows');r.style.display=r.style.display?'':'none';this.textContent=r.style.display?'Show agent details':'Hide details'">Show agent details</button></div>
     <div class="bar-o" id="lbar"><i></i></div>
     <div class="stages" id="lstages"><span>Plan</span><span>Visit stores</span><span>Read carts</span><span>Re-verify</span><span>Done</span></div>
     <div id="lrows"></div>
@@ -365,12 +366,12 @@ select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 1
 const STORES = {
   apotea:{name:"Apotea",c:"#e30613",ab:"Ae"}, apoteket:{name:"Apoteket",c:"#007a3d",ab:"At"},
   hjartat:{name:"Apotek Hjärtat",c:"#e4007c",ab:"H"}, kronans:{name:"Kronans Apotek",c:"#c8a200",ab:"K"}};
-/* Product photos: hotlinked from each store's own site. Screenshots: taken by our sandboxes in a real hunt. */
+/* Product photos: downloaded from each store's own product page (img/). Screenshots: taken by our sandboxes in a real hunt (shots/). */
 const IMG = {
-  apotea:"https://media.apotea.se/product-images/L/alvedon-novum-filmdragerad-tablett-500-mg-20-st-2-9.jpg",
-  apoteket:"https://www.apoteket.se/produktbilder/Validoo/097610js.jpg",
-  hjartat:"https://assets.icanet.se/image/upload/v1729869927/37434.webp",
-  kronans:"https://www.kronansapotek.se/k2/images/097610/large/0.jpg"};
+  apotea:"img/apotea.jpg",
+  apoteket:"img/apoteket.jpg",
+  hjartat:"img/hjartat.webp",
+  kronans:"img/kronans.jpg"};
 const SHOTS = {
   apotea:{search:"hunt-apotea-01",product:"hunt-apotea-04",cart:"hunt-apotea-12"},
   apoteket:{search:"hunt-apoteket-01",product:"hunt-apoteket-02",cart:"hunt-apoteket-10",verify:"verify-apoteket-11"},
@@ -435,6 +436,8 @@ function startHunt(q){
   document.getElementById("lbar").classList.remove("done"); document.getElementById("ldot").style.display = "";
   document.getElementById("ltag").textContent = "LIVE"; document.getElementById("topbar").classList.add("on");
   document.getElementById("rsum").textContent = "Agents are visiting 4 stores right now. Offers appear as soon as their cart is read.";
+  document.getElementById("lrows").style.display = ""; document.getElementById("ltoggle").style.display = "none";
+  document.getElementById("ltag").style.color = "";
   document.getElementById("lrows").innerHTML = Object.entries(SCRIPT).map(([k]) => `
     <div class="srow" id="sr-${k}"><span class="row">${dot(k)} <b>${STORES[k].name}</b></span><div class="bar-s"><i></i></div><span class="st mut">starting…</span>
       <span></span><div class="act">booting a fresh sandbox (gVisor) · locked to ${STORES[k].name.toLowerCase().replace(/ /g,"")}.se</div></div>`).join("");
@@ -456,7 +459,9 @@ function startHunt(q){
   timers.push(setTimeout(() => {
     huntDone = true; setStage(5, "Done: 4 stores checked, top 3 re-verified"); setOverall(100);
     document.getElementById("lbar").classList.add("done"); document.getElementById("ldot").style.display = "none";
-    document.getElementById("ltag").textContent = "✓"; setTimeout(() => document.getElementById("topbar").classList.remove("on"), 600);
+    document.getElementById("ltag").textContent = "✓"; document.getElementById("ltag").style.color = "var(--ok)";
+    document.getElementById("lrows").style.display = "none"; document.getElementById("ltoggle").style.display = ""; renderList();
+    setTimeout(() => document.getElementById("topbar").classList.remove("on"), 600);
     document.getElementById("rsum").innerHTML = `Done in ${fmt(DONE_AT)} · 4 stores · 🛡️ 5 risky actions blocked · <a href="#safety" style="color:var(--blue)">details</a>`;
   }, DONE_AT*1000));
 }

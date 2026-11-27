@@ -76,6 +76,18 @@ Data from a compromised scout is never used. Without the compromise switch, the 
 
 Vultr silently serves a default model for unknown model ids; `backend/llm.py` rejects any reply whose served model differs from the requested one.
 
+## Repository layout
+
+| Path | What |
+| --- | --- |
+| `frontend/` | Main web UI (React + TypeScript + Vite). Runs standalone in mock mode: `cd frontend && npm install && npm run dev`. See [frontend/README.md](frontend/README.md) for the API contract. |
+| `backend/` | FastAPI app + engine. `backend/contract.py` maps engine events to the frontend's API contract. |
+| `sandbox/` | Browser worker and egress proxy images, run on the sandbox host. |
+| `web/` | Lightweight built-in UI (served at `/lite/`) and the hostile demo shop (`/trap/`). |
+| `deploy/` | systemd unit, Caddyfile, deploy script. |
+
+The root `.env.example` is for the backend; the frontend has its own in `frontend/.env.example`.
+
 ## Run it
 
 Backend VM (Ubuntu 24.04, Docker, Caddy) with a Docker context `sandbox` pointing at the sandbox host (Docker + gVisor):

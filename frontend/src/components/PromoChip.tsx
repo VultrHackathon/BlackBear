@@ -43,8 +43,8 @@ export function PromoChip({ promo, memberships }: { promo: Promo; memberships: r
   const full = [promo.text, ...conditions].join(" · ");
   return (
     <li
-      className={`inline-flex max-w-full items-start gap-1.5 rounded-md border px-2 py-1 text-xs ${
-        state === "not_applied" ? "border-dashed border-line-strong text-muted" : "border-line-strong text-ink"
+      className={`inline-flex min-h-6 max-w-full items-start gap-1.5 rounded-md border border-line-strong px-2 py-1 text-xs ${
+        state === "not_applied" ? "border-dashed text-muted" : "bg-raised text-ink"
       }`}
       title={full}
     >

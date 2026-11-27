@@ -7,6 +7,7 @@ import { PlanReview } from "./components/PlanReview";
 import { Results } from "./components/Results";
 import { SandboxGrid } from "./components/SandboxGrid";
 import { SecurityScoreboard } from "./components/SecurityScoreboard";
+import { Pill } from "./components/ui";
 import { useHuntState } from "./state/HuntContext";
 
 type Tab = "hunt" | "security";
@@ -67,10 +68,10 @@ function MobileTabs({ tab, onChange, attacks }: { tab: Tab; onChange: (t: Tab) =
             >
               {t === "hunt" ? "Hunt" : "Security"}
               {t === "security" && attacks > 0 ? (
-                <span className="rounded-full border border-line-strong bg-raised px-1.5 font-mono text-[11px] tabular-nums">
+                <Pill size="xs" tone="strong" mono className="tabular-nums">
                   {attacks}
                   <span className="sr-only"> attacks</span>
-                </span>
+                </Pill>
               ) : null}
             </button>
           );

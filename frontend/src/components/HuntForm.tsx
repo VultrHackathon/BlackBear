@@ -1,9 +1,9 @@
-import { Check, FlaskConical, Minus, Plus, Search } from "lucide-react";
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { FlaskConical, Minus, Plus, Search } from "lucide-react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { USE_MOCK } from "../lib/env";
 import { membershipName } from "../lib/membership";
 import { useHuntActions, useHuntState } from "../state/HuntContext";
-import { btnGhost, btnPrimary, card, ErrorNote, SectionHeader, Spinner } from "./ui";
+import { Button, card, ErrorNote, inputClass, Pill, SectionHeader, ToggleChip } from "./ui";
 
 const MIN_QTY = 1;
 const MAX_QTY = 6;
@@ -12,42 +12,6 @@ const EXAMPLES: { label: string; query: string; quantity: number }[] = [
   { label: "65-inch OLED TV", query: "65-inch OLED TV", quantity: 1 },
   { label: "Saffran 0,5 g × 2", query: "Saffran 0,5 g", quantity: 2 },
 ];
-
-function Chip({
-  pressed,
-  onToggle,
-  children,
-  title,
-}: {
-  pressed: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-  title?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      onClick={onToggle}
-      title={title}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-        pressed
-          ? "border-ink/70 bg-raised text-ink"
-          : "border-line bg-transparent text-muted hover:border-line-strong hover:text-ink"
-      }`}
-    >
-      <span
-        className={`grid size-4 place-items-center rounded-full border ${
-          pressed ? "border-ink bg-ink text-canvas" : "border-line-strong"
-        }`}
-        aria-hidden="true"
-      >
-        {pressed ? <Check className="size-3" strokeWidth={3} /> : null}
-      </span>
-      {children}
-    </button>
-  );
-}
 
 export function HuntForm() {
   const state = useHuntState();
@@ -126,7 +90,7 @@ export function HuntForm() {
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
               <input
                 id={ids.query}
                 ref={registerQueryInput}
@@ -139,28 +103,26 @@ export function HuntForm() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="65-inch OLED TV"
                 aria-invalid={submitted && !trimmed ? true : undefined}
-                className="w-full rounded-lg border border-line-strong bg-canvas py-2.5 pr-3 pl-9 text-base text-ink placeholder:text-muted/80 hover:border-muted focus:border-ink"
+                className={`${inputClass} h-11 w-full rounded-lg pr-3 pl-10 text-base`}
               />
             </div>
-            <button type="submit" className={`${btnPrimary} sm:w-auto`} disabled={busy || !config}>
-              {busy ? <Spinner /> : <Search className="size-4" aria-hidden="true" />}
+            <Button type="submit" variant="primary" size="lg" icon={Search} loading={busy} disabled={!config}>
               {busy ? "Starting…" : "Start hunt"}
-            </button>
+            </Button>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
             <span>Try:</span>
             {EXAMPLES.map((ex) => (
-              <button
+              <Button
                 key={ex.label}
-                type="button"
-                className={`${btnGhost} border border-line px-2 py-0.5 text-xs`}
+                size="xs"
                 onClick={() => {
                   setQuery(ex.query);
                   setQuantity(ex.quantity);
                 }}
               >
                 {ex.label}
-              </button>
+              </Button>
             ))}
             {USE_MOCK ? (
               <span className="inline-flex items-center gap-1">
@@ -177,16 +139,16 @@ export function HuntForm() {
             <label htmlFor={ids.qty} className="mb-1.5 block text-sm font-medium">
               Quantity
             </label>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="grid size-10 place-items-center rounded-lg border border-line-strong bg-raised text-ink hover:border-muted disabled:opacity-40"
+            {/* One joined control: − | value | +. Each part keeps its own corners so its focus ring is whole. */}
+            <div className="flex items-center">
+              <Button
+                iconOnly
+                icon={Minus}
+                aria-label="Decrease quantity"
+                className="rounded-r-none focus-visible:z-10"
                 onClick={() => setQuantity((q) => clampQty(q - 1))}
                 disabled={quantity <= MIN_QTY}
-                aria-label="Decrease quantity"
-              >
-                <Minus className="size-4" aria-hidden="true" />
-              </button>
+              />
               <input
                 id={ids.qty}
                 type="number"
@@ -197,17 +159,16 @@ export function HuntForm() {
                 value={quantity}
                 onChange={(e) => setQuantity(clampQty(Number(e.target.value)))}
                 aria-describedby={ids.qtyHelp}
-                className="h-10 w-16 rounded-lg border border-line-strong bg-canvas text-center font-mono text-base tabular-nums hover:border-muted focus:border-ink"
+                className={`${inputClass} relative -mx-px h-10 w-16 text-center font-mono text-base tabular-nums focus:z-10`}
               />
-              <button
-                type="button"
-                className="grid size-10 place-items-center rounded-lg border border-line-strong bg-raised text-ink hover:border-muted disabled:opacity-40"
+              <Button
+                iconOnly
+                icon={Plus}
+                aria-label="Increase quantity"
+                className="rounded-l-none focus-visible:z-10"
                 onClick={() => setQuantity((q) => clampQty(q + 1))}
                 disabled={quantity >= MAX_QTY}
-                aria-label="Increase quantity"
-              >
-                <Plus className="size-4" aria-hidden="true" />
-              </button>
+              />
             </div>
             <p id={ids.qtyHelp} className="mt-1.5 text-xs text-muted">
               1–6. It matters for multi-buy offers like “3 för 2” or “2 för 49 kr”.
@@ -229,7 +190,7 @@ export function HuntForm() {
                 placeholder="No limit"
                 aria-describedby={ids.budgetHelp}
                 aria-invalid={submitted && budgetInvalid ? true : undefined}
-                className="h-10 w-full rounded-lg border border-line-strong bg-canvas pr-10 pl-3 font-mono text-base tabular-nums placeholder:font-sans placeholder:text-muted/80 hover:border-muted focus:border-ink"
+                className={`${inputClass} h-10 w-full rounded-lg pr-10 pl-3 font-mono text-base tabular-nums placeholder:font-sans`}
               />
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted" aria-hidden="true">
                 kr
@@ -251,14 +212,14 @@ export function HuntForm() {
             config.memberships.length ? (
               <div className="flex flex-wrap gap-2">
                 {config.memberships.map((m) => (
-                  <Chip
+                  <ToggleChip
                     key={m}
                     pressed={memberships.includes(m)}
                     onToggle={() => setMemberships((list) => toggle(list, m))}
                     title={`Member prices for ${membershipName(m)}`}
                   >
                     {m}
-                  </Chip>
+                  </ToggleChip>
                 ))}
               </div>
             ) : (
@@ -280,12 +241,12 @@ export function HuntForm() {
             </legend>
             {config ? (
               <div className="flex gap-1">
-                <button type="button" className={btnGhost} onClick={() => setStoreIds(allStoreIds)}>
+                <Button variant="ghost" size="sm" onClick={() => setStoreIds(allStoreIds)}>
                   Select all
-                </button>
-                <button type="button" className={btnGhost} onClick={() => setStoreIds([])}>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setStoreIds([])}>
                   Clear
-                </button>
+                </Button>
               </div>
             ) : null}
           </div>
@@ -293,7 +254,7 @@ export function HuntForm() {
           {config ? (
             <div className="flex flex-wrap gap-2">
               {config.stores.map((s) => (
-                <Chip
+                <ToggleChip
                   key={s.id}
                   pressed={selectedStores.includes(s.id)}
                   onToggle={() => setStoreIds((list) => toggle(list ?? allStoreIds, s.id))}
@@ -301,12 +262,11 @@ export function HuntForm() {
                 >
                   {s.name}
                   {s.honeypot ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-line-strong px-1.5 text-[11px] text-muted">
-                      <FlaskConical className="size-3" aria-hidden="true" />
+                    <Pill size="xs" icon={FlaskConical} className="border-line-strong">
                       honeypot
-                    </span>
+                    </Pill>
                   ) : null}
-                </Chip>
+                </ToggleChip>
               ))}
             </div>
           ) : state.configStatus === "error" ? (
@@ -335,7 +295,7 @@ function ChipSkeleton({ count }: { count: number }) {
   return (
     <div className="flex flex-wrap gap-2" aria-hidden="true">
       {Array.from({ length: count }, (_, i) => (
-        <span key={i} className="h-8 w-28 animate-pulse rounded-full border border-line bg-raised" />
+        <span key={i} className="h-8 w-28 animate-pulse rounded-full border bg-raised" />
       ))}
     </div>
   );

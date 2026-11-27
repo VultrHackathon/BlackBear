@@ -8,7 +8,7 @@ import type { Offer } from "../types";
 import { EvidenceModal } from "./EvidenceModal";
 import { PromoChip } from "./PromoChip";
 import { TrustBadge } from "./TrustBadge";
-import { btnSecondary, card, Spinner } from "./ui";
+import { Button, card, Pill, Spinner } from "./ui";
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -50,7 +50,7 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         <span
           className={`grid h-7 min-w-7 place-items-center rounded-md border px-1.5 font-mono text-xs tabular-nums ${
-            isBest ? "border-ink/60 text-ink" : "border-line text-muted"
+            isBest ? "border-ink/60 bg-raised text-ink shadow-key" : "bg-well text-muted inset-shadow-well"
           }`}
           aria-label={rank === null ? "Unranked" : `Rank ${rank}`}
         >
@@ -89,10 +89,9 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
           <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{formatSek(offer.effective_total_sek)}</p>
           <p className="mt-0.5 text-sm text-muted tabular-nums">{formatSek(offer.effective_unit_sek)} per unit</p>
           {overBudget ? (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-line-strong px-2 py-0.5 text-xs">
-              <Wallet className="size-3.5 text-muted" aria-hidden="true" />
+            <Pill as="p" tone="strong" shape="tag" icon={Wallet} className="mt-2">
               Over budget by {shipping === null ? "at least " : ""}{formatSek(offer.effective_total_sek - (budget as number))}
-            </p>
+            </Pill>
           ) : null}
         </div>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
@@ -140,29 +139,37 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
         </p>
 
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-          <button
+          <Button
             ref={evidenceBtn}
-            type="button"
-            className={`${btnSecondary} px-3 py-1.5`}
+            size="sm"
+            icon={FileImage}
             onClick={() => setEvidenceOpen(true)}
             aria-haspopup="dialog"
           >
-            <FileImage className="size-4" aria-hidden="true" />
             Evidence
-          </button>
-          <button
-            type="button"
-            className={`${btnSecondary} px-3 py-1.5`}
+          </Button>
+          <Button
+            size="sm"
+            icon={RefreshCw}
+            loading={rv?.status === "pending"}
             onClick={() => void reverify(offer.id)}
-            disabled={rv?.status === "pending"}
           >
-            {rv?.status === "pending" ? <Spinner /> : <RefreshCw className="size-4" aria-hidden="true" />}
             {rv?.status === "pending" ? "Re-verifying…" : "Re-verify"}
-          </button>
+          </Button>
+          {/*
+            A checkbox that sits level with the buttons beside it; checked, it stays pressed in.
+            Written out here because a <label> is never `:enabled`, which the Button styles key on.
+          */}
           <label
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
-              checked ? "border-ink/70 bg-raised text-ink" : "border-line-strong text-ink"
-            } ${compareDisabled ? "opacity-50" : "hover:border-muted"}`}
+            className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-medium select-none transition duration-150 ease-press ${
+              checked
+                ? "border-ink/60 bg-well shadow-key-pressed"
+                : "border-line-strong bg-raised bg-linear-to-b from-ink/7 to-transparent shadow-key"
+            } ${
+              compareDisabled
+                ? "cursor-not-allowed opacity-50"
+                : "cursor-pointer hover:border-muted/60 active:translate-y-px active:shadow-key-pressed"
+            }`}
             title={compareDisabled ? "Two offers are already selected. Uncheck one first." : undefined}
           >
             <span className="relative grid size-4 place-items-center">
@@ -172,7 +179,7 @@ export function OfferCard({ offer, rank, provisional }: { offer: Offer; rank: nu
                 disabled={compareDisabled}
                 onChange={() => toggleCompare(offer.id)}
                 aria-describedby={compareDisabled ? compareHintId : undefined}
-                className="peer size-4 appearance-none rounded border border-line-strong bg-canvas checked:border-ink checked:bg-ink disabled:cursor-not-allowed"
+                className="peer size-4 cursor-pointer appearance-none rounded border border-line-strong bg-well inset-shadow-well checked:border-ink checked:bg-ink disabled:cursor-not-allowed"
               />
               <Check
                 className="pointer-events-none absolute size-3 text-canvas opacity-0 peer-checked:opacity-100"

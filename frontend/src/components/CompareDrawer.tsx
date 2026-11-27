@@ -4,7 +4,7 @@ import { api, errorMessage } from "../api/client";
 import { useHuntActions, useHuntState } from "../state/HuntContext";
 import type { CompareResponse, Offer } from "../types";
 import { SafeMarkdown } from "./SafeMarkdown";
-import { btnGhost, btnSecondary, ErrorNote, Spinner } from "./ui";
+import { Button, ErrorNote, Pill, Skeleton, Spinner } from "./ui";
 
 type CompareState =
   | { status: "loading" }
@@ -69,15 +69,15 @@ export function CompareDrawer() {
       <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 sm:px-6 sm:pb-4">
         <div
           role="status"
-          className="mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-line-strong bg-raised px-4 py-2.5 text-sm shadow-2xl shadow-black/60 motion-safe:animate-drawer"
+          className="mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-line-strong bg-raised px-4 py-2.5 text-sm shadow-float motion-safe:animate-drawer"
         >
           <span className="flex items-center gap-2">
             <Scale className="size-4 text-muted" aria-hidden="true" />
             1 offer selected. Pick one more to compare.
           </span>
-          <button type="button" className={btnGhost} onClick={clearCompare}>
+          <Button variant="ghost" size="sm" onClick={clearCompare}>
             Clear
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -99,7 +99,7 @@ export function CompareDrawer() {
         }
       }}
     >
-      <div className="mx-auto flex max-h-[min(70vh,44rem)] max-w-5xl flex-col overflow-hidden rounded-2xl border border-line-strong bg-raised shadow-2xl shadow-black/60 motion-safe:animate-drawer">
+      <div className="mx-auto flex max-h-[min(70vh,44rem)] max-w-5xl flex-col overflow-hidden rounded-2xl border border-line-strong bg-raised shadow-float motion-safe:animate-drawer">
         <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-3">
           <h2
             ref={headingRef}
@@ -118,25 +118,22 @@ export function CompareDrawer() {
                 <Spinner className="size-3.5" /> Compare agent is weighing the offers…
               </span>
             ) : winnerName ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/60 px-2.5 py-0.5 text-xs">
-                <Trophy className="size-3.5" aria-hidden="true" />
+              <Pill tone="strong" icon={Trophy}>
                 Winner: {winnerName}
-              </span>
+              </Pill>
             ) : null}
           </div>
           <div className="ml-auto flex items-center gap-1">
-            <button
-              type="button"
-              className={`${btnGhost} p-1.5`}
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              icon={minimized ? ChevronUp : ChevronDown}
               onClick={() => setMinimized((m) => !m)}
               aria-expanded={!minimized}
               aria-label={minimized ? "Expand comparison" : "Minimize comparison"}
-            >
-              {minimized ? <ChevronUp className="size-4" aria-hidden="true" /> : <ChevronDown className="size-4" aria-hidden="true" />}
-            </button>
-            <button type="button" className={`${btnGhost} p-1.5`} onClick={close} aria-label="Close comparison">
-              <X className="size-4" aria-hidden="true" />
-            </button>
+            />
+            <Button variant="ghost" size="sm" iconOnly icon={X} onClick={close} aria-label="Close comparison" />
           </div>
         </header>
 
@@ -145,26 +142,25 @@ export function CompareDrawer() {
             {result.status === "loading" ? (
               <div className="space-y-2" aria-hidden="true">
                 {[90, 76, 84, 60].map((w) => (
-                  <div key={w} className="h-3 animate-pulse rounded bg-line" style={{ width: `${w}%` }} />
+                  <Skeleton key={w} width={`${w}%`} />
                 ))}
               </div>
             ) : result.status === "error" ? (
               <div className="flex flex-wrap items-center gap-3">
                 <ErrorNote>Compare failed: {result.message}</ErrorNote>
-                <button type="button" className={btnSecondary} onClick={() => setAttempt((n) => n + 1)}>
-                  <RotateCw className="size-4" aria-hidden="true" />
+                <Button icon={RotateCw} onClick={() => setAttempt((n) => n + 1)}>
                   Retry
-                </button>
+                </Button>
               </div>
             ) : data ? (
               <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
                 <SafeMarkdown className="text-sm">{data.explanation_md}</SafeMarkdown>
-                <div className="min-w-0 overflow-x-auto rounded-lg border border-line">
+                <div className="min-w-0 overflow-x-auto rounded-lg border bg-canvas/50 inset-shadow-well">
                   <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
                     <caption className="sr-only">
                       Side-by-side breakdown of {nameA} and {nameB}
                     </caption>
-                    <thead className="bg-surface text-xs">
+                    <thead className="border-b bg-surface text-xs">
                       <tr>
                         <th scope="col" className="w-32 px-3 py-2 font-medium text-muted">
                           <span className="sr-only">Attribute</span>
@@ -192,10 +188,10 @@ export function CompareDrawer() {
                           <th scope="row" className="px-3 py-2 text-xs font-medium whitespace-nowrap text-muted">
                             {row.label}
                           </th>
-                          <td className={`px-3 py-2 tabular-nums break-words ${data.winner_id === idA ? "bg-ink/[0.03]" : ""}`}>
+                          <td className={`px-3 py-2 tabular-nums break-words ${data.winner_id === idA ? "bg-ink/3" : ""}`}>
                             {row.a}
                           </td>
-                          <td className={`px-3 py-2 tabular-nums break-words ${data.winner_id === idB ? "bg-ink/[0.03]" : ""}`}>
+                          <td className={`px-3 py-2 tabular-nums break-words ${data.winner_id === idB ? "bg-ink/3" : ""}`}>
                             {row.b}
                           </td>
                         </tr>

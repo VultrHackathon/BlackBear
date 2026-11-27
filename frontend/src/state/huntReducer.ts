@@ -477,9 +477,13 @@ export function selectRankedOffers(s: HuntState): { offers: Offer[]; provisional
   const all = s.offerOrder.map((id) => s.offers[id]).filter((o): o is Offer => !!o);
   if (s.ranking) {
     const pos = new Map(s.ranking.map((id, i) => [id, i]));
+    // Ranked first, then offers waiting only on shipping, then excluded ones (mismatch, out of stock).
+    const group = (o: Offer) => (pos.has(o.id) ? 0 : o.shipping_sek === null && o.trust?.label !== "fake" ? 1 : 2);
     const rank = (o: Offer) => pos.get(o.id) ?? Number.MAX_SAFE_INTEGER;
     return {
-      offers: [...all].sort((a, b) => rank(a) - rank(b) || a.effective_total_sek - b.effective_total_sek),
+      offers: [...all].sort(
+        (a, b) => group(a) - group(b) || rank(a) - rank(b) || a.effective_total_sek - b.effective_total_sek,
+      ),
       provisional: false,
     };
   }

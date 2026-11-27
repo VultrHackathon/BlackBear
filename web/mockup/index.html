@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlackBear – e-commerce style mockup</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#fff;--ink:#14171c;--mut:#667085;--line:#e4e7ec;--soft:#f1f3f6;
+  --brand:#14171c;--acc:#c6f135;--accInk:#1b2400;--ok:#12805c;--okBg:#e7f6ef;--warn:#b54708;--warnBg:#fff4e5;
+  --bad:#c0262d;--badBg:#fdecec;--blue:#2563eb;--r:12px;--sh:0 1px 2px #1018280d,0 1px 3px #1018281a;
+}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+.demo{background:#fffbe6;border-bottom:1px solid #f5e6a8;font-size:12.5px;color:#7a5d00;text-align:center;padding:5px}
+
+/* header */
+header{background:var(--brand);color:#fff;position:sticky;top:0;z-index:20}
+.hd{display:flex;align-items:center;gap:18px;height:64px}
+.logo{font-weight:800;font-size:20px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo small{font-weight:500;color:#9aa4b2;font-size:12px}
+.search{flex:1;display:flex;background:#fff;border-radius:10px;overflow:hidden;max-width:620px}
+.search input{flex:1;border:0;padding:0 14px;font:inherit;color:var(--ink);outline:0;min-width:0}
+.search button{border:0;background:var(--acc);color:var(--accInk);font-weight:700;padding:0 18px;height:42px}
+.nav{display:flex;gap:4px;margin-left:auto}
+.nav a{padding:8px 12px;border-radius:8px;color:#d0d5dd;font-size:14px;display:flex;align-items:center;gap:6px;position:relative}
+.nav a:hover,.nav a.on{background:#ffffff14;color:#fff}
+.badge{background:var(--acc);color:var(--accInk);border-radius:99px;font-size:11px;font-weight:800;min-width:18px;height:18px;display:inline-grid;place-items:center;padding:0 5px}
+.sub{background:#1d2128;color:#c9ced6;font-size:13px}
+.sub .wrap{display:flex;gap:22px;height:36px;align-items:center;overflow:auto;white-space:nowrap}
+.sub b{color:#fff;font-weight:600}
+
+/* generic */
+.page{display:none;padding:22px 0 60px}.page.on{display:block}
+.crumbs{font-size:13px;color:var(--mut);margin-bottom:12px}.crumbs a{color:var(--blue)}
+h1{font-size:26px;letter-spacing:-.02em;margin:0 0 6px}h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.pad{padding:18px}.mut{color:var(--mut)}.sm{font-size:13px}.xs{font-size:12px}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:10px 16px;font-weight:600;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn:hover{background:var(--soft)}
+.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.pri:hover{background:#2a2f38}
+.btn.acc{background:var(--acc);color:var(--accInk);border-color:#b5dd2a}.btn.acc:hover{filter:brightness(.97)}
+.btn.block{width:100%}.btn.sm{padding:6px 10px;font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;white-space:nowrap}
+.t-ok{background:var(--okBg);color:var(--ok)}.t-warn{background:var(--warnBg);color:var(--warn)}.t-bad{background:var(--badBg);color:var(--bad)}.t-mut{background:var(--soft);color:var(--mut)}
+.promo{background:#eef4ff;color:#1d4ed8}
+.price{font-weight:800;letter-spacing:-.02em}
+.grid{display:grid;gap:16px}
+.row{display:flex;gap:12px;align-items:center}.between{justify-content:space-between}.wrapf{flex-wrap:wrap}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.chip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-size:13px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.thumb{background:linear-gradient(135deg,#f9e79f,#f5b041);border-radius:10px;display:grid;place-items:center;font-size:42px;aspect-ratio:1}
+.thumb.tab{background:linear-gradient(135deg,#d6eaf8,#85c1e9)}
+.pimg{background:#fff;border:1px solid var(--line);border-radius:10px;display:grid;place-items:center;aspect-ratio:1;overflow:hidden;padding:8%}
+.pimg img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+/* live search panel */
+.topbar{position:fixed;left:0;right:0;top:0;height:3px;z-index:30;pointer-events:none;display:none}
+.topbar.on{display:block}.topbar i{display:block;height:100%;background:var(--acc);box-shadow:0 0 8px var(--acc);transition:width .4s ease;width:0}
+.live{padding:16px 18px;margin:12px 0 18px}
+.live .lh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dotlive{width:9px;height:9px;border-radius:50%;background:#e11d48;box-shadow:0 0 0 0 #e11d4866;animation:pulse 1.4s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px #e11d4800}100%{box-shadow:0 0 0 0 #e11d4800}}
+.livetag{font-size:11px;font-weight:800;letter-spacing:.08em;color:#e11d48}
+.bar-o{height:10px;border-radius:99px;background:var(--soft);overflow:hidden;margin:12px 0 10px}
+.bar-o i{display:block;height:100%;width:0;border-radius:99px;transition:width .45s ease;
+  background:repeating-linear-gradient(45deg,#14171c 0 10px,#2d333d 10px 20px);background-size:28px 28px;animation:stripes 1s linear infinite}
+.bar-o.done i{background:var(--ok);animation:none}
+@keyframes stripes{to{background-position:28px 0}}
+.stages{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.stages span{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--mut)}
+.stages span.on{background:var(--ink);color:#fff}.stages span.done{background:var(--okBg);color:var(--ok)}
+.srow{display:grid;grid-template-columns:150px 1fr 90px;gap:12px;align-items:center;padding:7px 0;border-top:1px dashed var(--line);font-size:13px}
+.srow .act{grid-column:2/3;color:var(--mut);font:12px/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-s{height:6px;border-radius:99px;background:var(--soft);overflow:hidden}.bar-s i{display:block;height:100%;width:0;background:var(--ink);transition:width .4s}
+.srow.ok .bar-s i{background:var(--ok)}.srow .st{text-align:right;font-weight:600}
+.skel{background:linear-gradient(90deg,#eef0f3 25%,#f7f8fa 37%,#eef0f3 63%);background-size:400% 100%;animation:sk 1.3s ease infinite}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.newin{animation:in .35s}
+.storeDot{width:22px;height:22px;border-radius:6px;display:inline-grid;place-items:center;font-size:11px;font-weight:800;color:#fff;flex:none}
+.qty{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.qty button{border:0;background:#fff;width:32px;height:34px;font-size:16px}.qty span{width:34px;display:grid;place-items:center;font-weight:600}
+
+/* home */
+.hero{background:var(--ink);color:#fff;border-radius:18px;padding:44px;display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center}
+.hero h1{font-size:40px;line-height:1.1;color:#fff}.hero p{color:#c9ced6}
+.bigsearch{background:#fff;border-radius:12px;padding:8px;display:flex;gap:8px;margin-top:18px}
+.bigsearch input{flex:1;border:0;font:inherit;font-size:17px;padding:0 10px;outline:0;min-width:0}
+.how{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
+.how .card{padding:16px}.how b{display:block;margin-bottom:4px}
+.cats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.cat{padding:14px;display:flex;gap:12px;align-items:center}
+
+/* results */
+.layout{display:grid;grid-template-columns:240px 1fr;gap:20px;align-items:start}
+.filters .card{padding:16px}.filters h3{margin-top:6px}
+.filters label{display:flex;gap:8px;align-items:center;font-size:14px;padding:4px 0}
+.progress{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
+.ps{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid #c9ced6;border-top-color:var(--ink);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.plist{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.pc{display:flex;flex-direction:column;overflow:hidden}
+.pc .img{position:relative;padding:14px;padding-bottom:0}
+.pc .img .pimg{aspect-ratio:4/3}
+.pc .rank{position:absolute;top:22px;left:22px;background:var(--ink);color:#fff;border-radius:8px;padding:2px 8px;font-weight:800;font-size:13px}
+.pc .body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.pc .ttl{font-weight:600;line-height:1.3}
+.pc .ft{display:flex;gap:8px;margin-top:auto}
+.unranked{border-style:dashed}
+.sortbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+select{font:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:#fff}
+
+/* offer page */
+.offer{display:grid;grid-template-columns:1.15fr 1fr;gap:26px;align-items:start}
+.gallery .main{aspect-ratio:4/3;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff;position:relative}
+.shot{width:100%;height:100%;display:flex;flex-direction:column;font-size:12px}
+.shot .bar{height:28px;background:#eef0f3;display:flex;align-items:center;gap:6px;padding:0 10px;color:var(--mut)}
+.shot .bar i{width:9px;height:9px;border-radius:50%;background:#d0d5dd;display:inline-block}
+.shot .cnt{flex:1;padding:16px;display:grid;grid-template-columns:120px 1fr;gap:14px}
+.shot .tag{position:absolute;bottom:10px;left:10px;background:#000c;color:#fff;font-size:12px;border-radius:7px;padding:3px 8px}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.thumbs button{border:2px solid transparent;border-radius:9px;padding:0;background:#fff;overflow:hidden;aspect-ratio:4/3;font-size:11px;color:var(--mut);position:relative}
+.thumbs button img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.thumbs button span{position:absolute;left:4px;bottom:4px;background:#000b;color:#fff;border-radius:5px;padding:0 5px;font-size:10.5px}
+.gallery .main img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.thumbs button.on{border-color:var(--ink)}
+.buybox{padding:20px;position:sticky;top:120px}
+.buybox .big{font-size:38px}
+.brk{width:100%;border-collapse:collapse;font-size:14px}.brk td{padding:6px 0}.brk td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.brk tr.tot td{border-top:1px solid var(--line);font-weight:800;padding-top:10px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:26px 0 16px}
+.tabs button{border:0;background:none;padding:10px 14px;font-weight:600;color:var(--mut);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--ink);border-color:var(--ink)}
+.tabpane{display:none}.tabpane.on{display:block}
+.log{font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+.log div{padding:3px 0;border-bottom:1px dashed var(--line)}.log .x{color:var(--bad)}
+.check li{margin:6px 0}
+
+/* compare */
+.cmp{width:100%;border-collapse:separate;border-spacing:0}
+.cmp th,.cmp td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.cmp th{font-size:13px;color:var(--mut);font-weight:500;width:200px}
+.cmp td.win{background:#f4fbe1}
+
+/* cart */
+.cartl{display:grid;grid-template-columns:1fr 340px;gap:22px;align-items:start}
+.store-g{margin-bottom:16px}
+.store-g .gh{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:#fafbfc;border-radius:var(--r) var(--r) 0 0}
+.li{display:grid;grid-template-columns:72px 1fr auto auto;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.li .thumb{font-size:26px}
+.li:last-child{border-bottom:0}
+.sum td{padding:6px 0}.sum td:last-child{text-align:right}
+.empty{text-align:center;padding:60px 20px}
+
+/* checkout */
+.steps{display:flex;gap:0;margin:8px 0 20px;counter-reset:s}
+.steps div{flex:1;display:flex;align-items:center;gap:10px;font-weight:600;color:var(--mut);font-size:14px}
+.steps div::before{counter-increment:s;content:counter(s);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);background:#fff;flex:none}
+.steps div.on{color:var(--ink)}.steps div.on::before{border-color:var(--ink);background:var(--ink);color:#fff}
+.steps div.done{color:var(--ok)}.steps div.done::before{content:"✓";border-color:var(--ok);background:var(--ok);color:#fff}
+.steps div:not(:last-child)::after{content:"";flex:1;height:2px;background:var(--line);margin:0 10px}
+.vr{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.vr:last-child{border-bottom:0}
+.gate{border:2px solid var(--ink);border-radius:var(--r);padding:18px;background:#fff}
+.handoff{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+
+/* safety */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{padding:16px}.stat b{font-size:28px;display:block;letter-spacing:-.02em}
+
+/* toast + drawer */
+.toast{position:fixed;right:20px;top:80px;z-index:50;background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px #0003;display:none;gap:12px;align-items:center;max-width:360px}
+.toast.on{display:flex;animation:in .2s}
+@keyframes in{from{transform:translateY(-8px);opacity:0}}
+.minicart{position:fixed;right:0;top:0;bottom:0;width:380px;background:#fff;z-index:60;box-shadow:-10px 0 40px #0002;transform:translateX(100%);transition:transform .25s;display:flex;flex-direction:column}
+.minicart.on{transform:none}
+.scrim{position:fixed;inset:0;background:#0006;z-index:55;display:none}.scrim.on{display:block}
+.mc-h{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.mc-b{flex:1;overflow:auto;padding:6px 18px}.mc-f{padding:16px 18px;border-top:1px solid var(--line)}
+.x{border:0;background:none;font-size:22px;line-height:1;color:var(--mut)}
+@media(max-width:900px){.hero,.offer,.cartl,.layout{grid-template-columns:1fr}.plist{grid-template-columns:1fr 1fr}.how,.cats,.stats{grid-template-columns:1fr 1fr}.nav a span.lbl{display:none}.filters{display:none}}
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"><i></i></div>
+<div class="demo">Design mockup · all prices, stores and results below are <b>example data</b> for illustration</div>
+
+<header>
+  <div class="wrap hd">
+    <a class="logo" href="#home">🐻 BlackBear <small>deal hunter</small></a>
+    <form class="search" onsubmit="startHunt(this.q.value);return false">
+      <input name="q" placeholder="Search a product across Swedish stores…" value="Alvedon 500 mg 20 st">
+      <button>Hunt</button>
+    </form>
+    <nav class="nav">
+      <a href="#results" data-nav="results">🔎 <span class="lbl">Results</span></a>
+      <a href="#compare" data-nav="compare">⚖️ <span class="lbl">Compare</span> <span class="badge" id="cmpN">0</span></a>
+      <a href="#safety" data-nav="safety">🛡️ <span class="lbl">Safety</span></a>
+      <a href="javascript:openMini()">🛒 <span class="lbl">Cart</span> <span class="badge" id="cartN">0</span></a>
+    </nav>
+  </div>
+  <div class="sub"><div class="wrap">
+    <span>🔒 Every price read in an <b>isolated sandbox</b></span>
+    <span>🧾 Checked against the <b>real cart</b></span>
+    <span>🧮 Maths done by <b>code</b>, not the AI</span>
+    <span>✋ BlackBear <b>never pays</b> for you</span>
+  </div></div>
+</header>
+
+<!-- ============ HOME ============ -->
+<section class="page" id="p-home"><div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>The best price, with proof.</h1>
+      <p>Tell us what you want. Our agents visit each store in a locked-down browser, put it in the cart, and show you the real total, with screenshots.</p>
+      <form class="bigsearch" onsubmit="startHunt(this.q.value);return false">
+        <input name="q" placeholder="e.g. Hjärtats saffran 0,5 g" value="Alvedon 500 mg 20 st">
+        <button class="btn acc">Start hunt</button>
+      </form>
+      <div class="row wrapf" style="margin-top:14px">
+        <span class="sm" style="color:#9aa4b2">Quantity</span>
+        <div class="qty" style="background:#fff;color:var(--ink)"><button type="button" onclick="hq(-1)">−</button><span id="hq">2</span><button type="button" onclick="hq(1)">+</button></div>
+        <span class="sm" style="color:#9aa4b2;margin-left:8px">My clubs</span>
+        <button class="chip" onclick="this.classList.toggle('on')">Stammis</button>
+        <button class="chip" onclick="this.classList.toggle('on')">Apotekets kundklubb</button>
+      </div>
+    </div>
+    <div class="card pad" style="color:var(--ink)">
+      <div class="row between"><b>Last hunt</b><span class="pill t-ok">✓ done in 2:07</span></div>
+      <p class="sm mut" style="margin:4px 0 12px">Alvedon 500 mg, 20 st × 2</p>
+      <div class="row between"><span class="row"><span class="storeDot" style="background:#e30613">Ae</span>Apotea</span><b>68 kr</b></div><hr>
+      <div class="row between"><span class="row"><span class="storeDot" style="background:#c8a200">K</span>Kronans Apotek</span><b>87 kr</b></div><hr>
+      <div class="row between"><span class="row"><span class="storeDot" style="background:#e4007c">H</span>Apotek Hjärtat</span><span class="mut">70 kr + shipping?</span></div>
+      <button class="btn block" style="margin-top:14px" onclick="go('results')">View results →</button>
+    </div>
+  </div>
+
+  <div class="how">
+    <div class="card"><b>1 · Search</b><span class="sm mut">One search, four pharmacies. You approve the plan or let it run.</span></div>
+    <div class="card"><b>2 · Agents shop</b><span class="sm mut">Each store gets a fresh, sealed browser. Watch them live.</span></div>
+    <div class="card"><b>3 · Real totals</b><span class="sm mut">Multi-buy, member prices and shipping, checked in the cart.</span></div>
+    <div class="card"><b>4 · You buy</b><span class="sm mut">Add to cart, review, then continue at the store yourself.</span></div>
+  </div>
+
+  <h2 style="margin-top:30px">Popular hunts</h2>
+  <div class="cats">
+    <a class="card cat" href="javascript:startHunt('Hjärtats saffran 0,5 g')"><div class="pimg" style="width:64px;padding:4px"><img src="img/saffran.webp" alt="Hjärtats saffran"></div><div><b>Hjärtats saffran 0,5 g</b><div class="xs mut">Lucia season · 4 stores</div></div></a>
+    <a class="card cat" href="javascript:startHunt('Alvedon 500 mg 20 st')"><div class="pimg" style="width:64px;padding:4px"><img src="img/apotea.jpg" alt="Alvedon"></div><div><b>Alvedon 500 mg, 20 st</b><div class="xs mut">4 stores</div></div></a>
+  </div>
+</div></section>
+
+<!-- ============ RESULTS (listing page) ============ -->
+<section class="page" id="p-results"><div class="wrap">
+  <div class="crumbs"><a href="#home">Home</a> › Results</div>
+  <div class="row between wrapf">
+    <div><h1 id="rq">“Alvedon 500 mg 20 st” × 2</h1><div class="sm mut" id="rsum">Hunting in 4 stores…</div></div>
+    <button class="btn sm" onclick="go('plan')">View plan &amp; live sandboxes</button>
+  </div>
+  <div class="card live" id="live" style="display:none">
+    <div class="lh"><span class="dotlive" id="ldot"></span><span class="livetag" id="ltag">LIVE</span>
+      <b id="lstage">Planning the search…</b><span class="mut sm" id="lcount"></span><span class="mut sm" style="margin-left:auto" id="ltime">0:00</span>
+      <button class="btn sm" id="ltoggle" style="display:none" onclick="const r=document.getElementById('lrows');r.style.display=r.style.display?'':'none';this.textContent=r.style.display?'Show agent details':'Hide details'">Show agent details</button></div>
+    <div class="bar-o" id="lbar"><i></i></div>
+    <div class="stages" id="lstages"><span>Plan</span><span>Visit stores</span><span>Read carts</span><span>Re-verify</span><span>Done</span></div>
+    <div id="lrows"></div>
+  </div>
+
+  <div class="layout">
+    <aside class="filters"><div class="card">
+      <h3>Stores</h3>
+      <label><input type="checkbox" checked> Apotea</label><label><input type="checkbox" checked> Apoteket</label>
+      <label><input type="checkbox" checked> Apotek Hjärtat</label><label><input type="checkbox" checked> Kronans Apotek</label>
+      <hr><h3>Trust</h3>
+      <label><input type="checkbox" checked> ✓ Verified in cart</label><label><input type="checkbox" checked> ⚠ Questionable</label>
+      <label><input type="checkbox" id="fFake" onchange="renderList()"> ✕ Show excluded</label>
+      <hr><h3>Price</h3>
+      <label><input type="checkbox" id="fShip" onchange="renderList()"> Shipping known only</label>
+      <label><input type="checkbox" checked> In stock</label>
+      <hr><h3>My clubs</h3>
+      <label><input type="checkbox"> Stammis</label><label><input type="checkbox"> Apotekets kundklubb</label>
+      <p class="xs mut">Member prices count only for clubs you tick.</p>
+    </div></aside>
+
+    <div>
+      <div class="sortbar">
+        <span class="sm mut" id="rcount"></span>
+        <label class="sm">Sort by <select id="sort" onchange="renderList()"><option value="total">Best total for you</option><option value="unit">Unit price</option><option value="trust">Trust</option></select></label>
+      </div>
+      <div class="plist" id="plist"></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============ PLAN / LIVE ============ -->
+<section class="page" id="p-plan"><div class="wrap">
+  <div class="crumbs"><a href="#home">Home</a> › <a href="#results">Results</a> › Plan &amp; live sandboxes</div>
+  <h1>What the agents are doing</h1>
+  <p class="mut">Same information as the current dashboard, moved one click away from the shopping flow.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:14px">
+    <div class="card pad"><h3>Plan</h3><ul class="check sm"><li>Same product: Alvedon 500 mg filmdragerade tabletter</li><li>Pack size: 20 st</li><li>In stock, quantity 2</li></ul>
+      <div class="row wrapf"><span class="pill t-mut">Apotea · “Alvedon 500 mg”</span><span class="pill t-mut">Apoteket · “Alvedon 500 mg”</span><span class="pill t-mut">Hjärtat · “Alvedon 500 mg”</span><span class="pill t-mut">Kronans · “Alvedon 500 mg”</span></div></div>
+    <div class="card pad"><h3>Live sandboxes</h3>
+      <div class="log" id="livelog"></div></div>
+  </div>
+</div></section>
+
+<!-- ============ OFFER (product page) ============ -->
+<section class="page" id="p-offer"><div class="wrap" id="offerWrap"></div></section>
+
+<!-- ============ COMPARE ============ -->
+<section class="page" id="p-compare"><div class="wrap">
+  <div class="crumbs"><a href="#home">Home</a> › <a href="#results">Results</a> › Compare</div>
+  <h1>Compare offers</h1>
+  <div id="cmpWrap"></div>
+</div></section>
+
+<!-- ============ CART ============ -->
+<section class="page" id="p-cart"><div class="wrap">
+  <div class="crumbs"><a href="#home">Home</a> › Cart</div>
+  <h1>Your cart</h1>
+  <p class="mut sm" style="margin-top:0">Your BlackBear cart is a shortlist. Nothing is bought until you continue at each store.</p>
+  <div class="cartl" id="cartWrap"></div>
+</div></section>
+
+<!-- ============ CHECKOUT ============ -->
+<section class="page" id="p-checkout"><div class="wrap">
+  <div class="crumbs"><a href="#home">Home</a> › <a href="#cart">Cart</a> › Checkout</div>
+  <h1>Checkout</h1>
+  <div class="steps" id="steps"><div>Review</div><div>Confirm prices</div><div>Buy at the stores</div></div>
+  <div class="cartl" id="coWrap"></div>
+</div></section>
+
+<!-- ============ SAFETY ============ -->
+<section class="page" id="p-safety"><div class="wrap">
+  <div class="crumbs"><a href="#home">Home</a> › Safety</div>
+  <h1>How your hunt stayed safe</h1>
+  <p class="mut">The security scoreboard, moved to its own page. A small shield in each offer links here.</p>
+  <div class="stats">
+    <div class="card stat"><b>7</b><span class="sm mut">sandboxes created and destroyed</span></div>
+    <div class="card stat"><b>5</b><span class="sm mut">risky actions blocked (checkout, login, card)</span></div>
+    <div class="card stat"><b>2</b><span class="sm mut">hidden instructions caught on pages</span></div>
+    <div class="card stat"><b>0</b><span class="sm mut">attacks that got through</span></div>
+  </div>
+  <div class="card pad" style="margin-top:16px"><h3>Blocked in this hunt</h3><div class="log">
+    <div class="x">✕ Fyndbutiken · click “Till kassan” → action firewall: checkout is not allowed</div>
+    <div class="x">✕ Fyndbutiken · goto 169.254.169.254 (cloud metadata) → egress proxy</div>
+    <div class="x">✕ Fyndbutiken · type a card number → action firewall</div>
+    <div>· Apoteket · 4 tracker requests blocked (not attacks)</div>
+  </div></div>
+</div></section>
+
+<!-- mini cart + toast -->
+<div class="scrim" id="scrim" onclick="closeMini()"></div>
+<aside class="minicart" id="mini">
+  <div class="mc-h"><b>Cart</b><button class="x" onclick="closeMini()">×</button></div>
+  <div class="mc-b" id="miniB"></div>
+  <div class="mc-f"><div class="row between" style="margin-bottom:10px"><span>Estimated total</span><b id="miniT"></b></div>
+    <button class="btn pri block" onclick="closeMini();go('cart')">View cart &amp; checkout</button></div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- example data ---------- */
+const STORES = {
+  apotea:{name:"Apotea",c:"#e30613",ab:"Ae"}, apoteket:{name:"Apoteket",c:"#007a3d",ab:"At"},
+  hjartat:{name:"Apotek Hjärtat",c:"#e4007c",ab:"H"}, kronans:{name:"Kronans Apotek",c:"#c8a200",ab:"K"}};
+/* Product photos: downloaded from each store's own product page (img/). Screenshots: taken by our sandboxes in a real hunt (shots/). */
+const IMG = {
+  apotea:"img/apotea.jpg",
+  apoteket:"img/apoteket.jpg",
+  hjartat:"img/hjartat.webp",
+  kronans:"img/kronans.jpg"};
+const SHOTS = {
+  apotea:{search:"hunt-apotea-01",product:"hunt-apotea-04",cart:"hunt-apotea-12"},
+  apoteket:{search:"hunt-apoteket-01",product:"hunt-apoteket-02",cart:"hunt-apoteket-10",verify:"verify-apoteket-11"},
+  hjartat:{search:"hunt-apotekhjartat-01",product:"hunt-apotekhjartat-03",cart:"hunt-apotekhjartat-09"},
+  kronans:{search:"hunt-kronans-01",product:"hunt-kronans-03",cart:"hunt-kronans-07",verify:"verify-kronans-05"}};
+const pimg = (o, st="") => `<div class="pimg" style="${st}"><img src="${IMG[o.store]}" alt="${o.title}" loading="lazy"></div>`;
+const OFFERS = [
+  {id:"o1",store:"apotea",title:"Alvedon Novum 500 mg filmdragerade tabletter, 20 st",unit:34,qty:2,items:68,ship:0,shipNote:"Free shipping",trust:"ok",promo:null,emoji:"💊",
+   audit:["Guest cart total 68 kr matches the computed price.","Re-verified in a fresh sandbox: same price."],low30:34},
+  {id:"o2",store:"kronans",title:"Alvedon 500 mg, 20 st",unit:34,qty:2,items:68,ship:19,shipNote:"19 kr (read in cart)",trust:"ok",promo:null,emoji:"💊",
+   audit:["Cart showed 87 kr including 19 kr shipping.","Re-verified: same price."],low30:34},
+  {id:"o3",store:"apoteket",title:"Alvedon, filmdragerad tablett 500 mg, 20 st",unit:35,qty:2,items:59,ship:0,shipNote:"Free (read in cart)",trust:"warn",promo:"2 för 59 kr",emoji:"💊",
+   audit:["Promo “2 för 59 kr” was not applied in the guest cart.","Cart held 1 instead of 2 on the first read."],low30:35},
+  {id:"o4",store:"hjartat",title:"Alvedon Filmdragerad Tablett 500 mg 20 st",unit:35,qty:2,items:70,ship:null,shipNote:"Not shown before checkout",trust:"ok",promo:null,emoji:"💊",
+   audit:["Guest cart total 70 kr matches.","Shipping not shown, so this offer is not ranked."],low30:35},
+];
+const LOG = [
+  "Apotea     · goto apotea.se/search?q=Alvedon+500+mg","Apotea     · click [112] “Alvedon 500 mg 20 st”","Apotea     · extract price 34 kr",
+  "Kronans    · type [3] “Alvedon 500 mg”","Apoteket   · type [18] “2” (quantity)","Hjärtat    · add_to_cart","Kronans    · read cart: 87 kr incl. 19 kr shipping"];
+
+/* ---------- state ---------- */
+let cart = [], compare = new Set(), current = null, coStep = 1;
+const kr = n => n == null ? "–" : (Math.round(n*100)/100).toLocaleString("sv-SE") + " kr";
+const total = o => o.ship == null ? null : o.items + o.ship;
+const trustPill = t => ({ok:'<span class="pill t-ok">✓ Verified in cart</span>',warn:'<span class="pill t-warn">⚠ Questionable</span>',bad:'<span class="pill t-bad">✕ Cart mismatch</span>'})[t];
+const dot = s => `<span class="storeDot" style="background:${STORES[s].c}">${STORES[s].ab}</span>`;
+
+/* ---------- router ---------- */
+function go(p){ location.hash = p; }
+function route(){
+  const [p, arg] = (location.hash.slice(1) || "home").split("/");
+  document.querySelectorAll(".page").forEach(s => s.classList.toggle("on", s.id === "p-" + p));
+  document.querySelectorAll("[data-nav]").forEach(a => a.classList.toggle("on", a.dataset.nav === p));
+  if (p === "results") renderList();
+  if (p === "offer") renderOffer(arg);
+  if (p === "compare") renderCompare();
+  if (p === "cart") renderCart();
+  if (p === "checkout") renderCheckout();
+  if (p === "plan") document.getElementById("livelog").innerHTML = LOG.map(l => `<div>${l}</div>`).join("");
+  window.scrollTo(0, 0);
+}
+addEventListener("hashchange", route);
+
+/* ---------- home ---------- */
+let homeQty = 2; function hq(d){ homeQty = Math.max(1, Math.min(6, homeQty + d)); document.getElementById("hq").textContent = homeQty; }
+let huntDone = true, doneStores = new Set(), timers = [];
+const SCRIPT = {   // what each scout does, with the second it happens (example timing)
+  apotea:  [[1.2,"goto apotea.se/search?q=Alvedon+500+mg"],[2.6,"click [112] “Alvedon 500 mg 20 st”"],[4.0,"extract price 34 kr"],[5.4,"type [9] quantity “2”"],[6.6,"add to cart"],[7.8,"read cart: 68 kr"]],
+  kronans: [[1.4,"goto kronansapotek.se/search?q=Alvedon"],[3.0,"accept cookies"],[4.6,"click [27] “Alvedon 500 mg”"],[6.2,"extract price 34 kr"],[7.6,"add to cart"],[9.2,"read cart: 87 kr incl. 19 kr shipping"]],
+  apoteket:[[1.0,"goto apoteket.se/sok/?q=Alvedon+500+mg"],[2.8,"click [6] “Alvedon, filmdragerad tablett”"],[4.4,"extract price 35 kr · “2 för 59 kr”"],[6.0,"type [18] quantity “2”"],[8.0,"add to cart"],[10.4,"read cart: 59 kr"]],
+  hjartat: [[1.6,"goto apotekhjartat.se/sok/?q=Alvedon"],[3.4,"click [14] “Alvedon Filmdragerad Tablett”"],[5.0,"extract price 35 kr"],[6.8,"add to cart"],[8.6,"open cart"],[11.0,"read cart: 70 kr (shipping not shown)"]]};
+const REVERIFY_AT = 11.6, DONE_AT = 14.2;
+function fmt(t){ return `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`; }
+function setOverall(p){ document.querySelector("#lbar i").style.width = p + "%"; document.querySelector("#topbar i").style.width = p + "%"; }
+function setStage(i, text){ document.getElementById("lstage").textContent = text;
+  document.querySelectorAll("#lstages span").forEach((s,j) => s.className = j < i ? "done" : j === i ? "on" : ""); }
+function startHunt(q){
+  timers.forEach(clearTimeout); timers = []; doneStores = new Set(); huntDone = false;
+  document.getElementById("rq").textContent = `“${q}” × ${homeQty}`;
+  go("results");
+  const live = document.getElementById("live"); live.style.display = "";
+  document.getElementById("lbar").classList.remove("done"); document.getElementById("ldot").style.display = "";
+  document.getElementById("ltag").textContent = "LIVE"; document.getElementById("topbar").classList.add("on");
+  document.getElementById("rsum").textContent = "Agents are visiting 4 stores right now. Offers appear as soon as their cart is read.";
+  document.getElementById("lrows").style.display = ""; document.getElementById("ltoggle").style.display = "none";
+  document.getElementById("ltag").style.color = "";
+  document.getElementById("lrows").innerHTML = Object.entries(SCRIPT).map(([k]) => `
+    <div class="srow" id="sr-${k}"><span class="row">${dot(k)} <b>${STORES[k].name}</b></span><div class="bar-s"><i></i></div><span class="st mut">starting…</span>
+      <span></span><div class="act">booting a fresh sandbox (gVisor) · locked to ${STORES[k].name.toLowerCase().replace(/ /g,"")}.se</div></div>`).join("");
+  setStage(0, "Planning the search…"); setOverall(4); renderList(0);
+  const t0 = Date.now(); const tick = setInterval(() => { document.getElementById("ltime").textContent = fmt((Date.now()-t0)/1000); if (huntDone) clearInterval(tick); }, 250);
+  timers.push(setTimeout(() => setStage(1, "Agents are visiting the stores…"), 900));
+  const allSteps = Object.values(SCRIPT).reduce((a,s) => a + s.length, 0); let stepsDone = 0;
+  Object.entries(SCRIPT).forEach(([k, steps]) => steps.forEach(([t, txt], i) => timers.push(setTimeout(() => {
+    const row = document.getElementById("sr-"+k); stepsDone++;
+    row.querySelector(".act").textContent = "▸ " + txt;
+    row.querySelector(".bar-s i").style.width = ((i+1)/steps.length*100) + "%";
+    row.querySelector(".st").textContent = i === steps.length-1 ? "✓ cart read" : `step ${i+1}/${steps.length}`;
+    setOverall(4 + 76 * stepsDone / allSteps);
+    if (/add to cart|read cart/.test(txt)) setStage(2, "Reading the real carts…");
+    if (i === steps.length-1){ row.classList.add("ok"); row.querySelector(".st").style.color = "var(--ok)"; doneStores.add(k); renderList();
+      document.getElementById("lcount").textContent = `· ${doneStores.size} of 4 stores done`; }
+  }, t*1000))));
+  timers.push(setTimeout(() => { setStage(3, "Re-checking the top 3 in fresh sandboxes…"); setOverall(88); }, REVERIFY_AT*1000));
+  timers.push(setTimeout(() => {
+    huntDone = true; setStage(5, "Done: 4 stores checked, top 3 re-verified"); setOverall(100);
+    document.getElementById("lbar").classList.add("done"); document.getElementById("ldot").style.display = "none";
+    document.getElementById("ltag").textContent = "✓"; document.getElementById("ltag").style.color = "var(--ok)";
+    document.getElementById("lrows").style.display = "none"; document.getElementById("ltoggle").style.display = ""; renderList();
+    setTimeout(() => document.getElementById("topbar").classList.remove("on"), 600);
+    document.getElementById("rsum").innerHTML = `Done in ${fmt(DONE_AT)} · 4 stores · 🛡️ 5 risky actions blocked · <a href="#safety" style="color:var(--blue)">details</a>`;
+  }, DONE_AT*1000));
+}
+
+/* ---------- results ---------- */
+function sorted(){
+  const s = document.getElementById("sort")?.value || "total";
+  const ranked = OFFERS.filter(o => total(o) != null).sort((a,b) =>
+    s === "unit" ? a.unit - b.unit : s === "trust" ? (a.trust > b.trust) - (a.trust < b.trust) || total(a)-total(b) : total(a) - total(b));
+  const rest = document.getElementById("fShip")?.checked ? [] : OFFERS.filter(o => total(o) == null);
+  return [ranked, rest];
+}
+function renderList(n){
+  let [ranked, rest] = sorted();
+  const vis = o => huntDone || doneStores.has(o.store);
+  const pendingN = Object.keys(STORES).length - (huntDone ? 4 : doneStores.size);
+  ranked = ranked.filter(vis); rest = rest.filter(vis);
+  let shown = n == null ? null : n;
+  const card = (o, rank) => `
+    <div class="card pc ${rank ? "" : "unranked"} ${huntDone ? "" : "newin"}">
+      <div class="img">${pimg(o)}${rank ? `<span class="rank">#${rank}</span>` : ""}</div>
+      <div class="body">
+        <div class="row xs mut">${dot(o.store)} ${STORES[o.store].name}</div>
+        <a class="ttl" href="#offer/${o.id}">${o.title}</a>
+        <div>${trustPill(o.trust)} ${o.promo ? `<span class="pill promo">${o.promo}</span>` : ""}</div>
+        <div><span class="price" style="font-size:24px">${total(o) != null ? kr(total(o)) : kr(o.items)}</span>
+          <div class="xs mut">${total(o) != null ? `${o.promo ? o.promo + " applied" : o.qty + " × " + kr(o.unit)} · shipping ${o.ship ? kr(o.ship) : "free"}` : `items only · shipping not shown, so not ranked`}</div></div>
+        <div class="ft"><button class="btn acc sm" style="flex:1" onclick="addToCart('${o.id}')">Add to cart</button>
+          <button class="btn sm" title="Compare" onclick="toggleCmp('${o.id}',this)">${compare.has(o.id) ? "✓ Comparing" : "⚖ Compare"}</button></div>
+      </div></div>`;
+  let html = ranked.map((o,i) => card(o, i+1)).join("");
+  if (rest.length) html += `<div style="grid-column:1/-1" class="sm mut">Not ranked yet: shipping wasn't shown before checkout</div>` + rest.map(o => card(o, 0)).join("");
+  if (!huntDone && pendingN > 0) html += Array.from({length: pendingN}, () => `<div class="card pc"><div class="img"><div class="pimg skel" style="aspect-ratio:4/3;border:0"></div></div><div class="body"><div class="skel" style="height:14px;width:60%;border-radius:6px"></div><div class="skel" style="height:22px;width:40%;border-radius:6px"></div><div class="mut sm">Waiting for a verified cart price…</div></div></div>`).join("");
+  document.getElementById("plist").innerHTML = html;
+  document.getElementById("rcount").textContent = huntDone ? `${ranked.length} ranked · ${rest.length} waiting on shipping` : `${ranked.length + rest.length} offers so far · ranking updates live`;
+}
+
+/* ---------- offer page ---------- */
+function renderOffer(id){
+  const o = OFFERS.find(x => x.id === id) || OFFERS[0]; current = o;
+  const s = STORES[o.store];
+  const sh = SHOTS[o.store];
+  const shots = [["Product page", sh.product], ["Cart", sh.cart], ["Re-verify", sh.verify], ["Search", sh.search]].filter(x => x[1]);
+  window._shots = shots;
+  document.getElementById("offerWrap").innerHTML = `
+  <div class="crumbs"><a href="#home">Home</a> › <a href="#results">Results</a> › ${s.name}</div>
+  <div class="offer">
+    <div class="gallery">
+      <div class="main" id="gmain">${shot(shots[0])}</div>
+      <div class="thumbs">${shots.map((x,i) => `<button class="${i?"":"on"}" onclick="pickShot(${i},this)"><img src="shots/${x[1]}.jpg" alt=""><span>${x[0]}</span></button>`).join("")}
+        <button onclick="toast('Product photo from ${s.name}')" style="padding:6px">${pimg(o,"border:0;aspect-ratio:auto;height:100%;padding:0")}</button></div>
+      <p class="xs mut">Real screenshots taken inside the sandbox while the price was read. This is your proof.</p>
+    </div>
+    <div class="card buybox">
+      <div class="row sm">${dot(o.store)} <b>${s.name}</b> ${trustPill(o.trust)}</div>
+      <h1 style="font-size:22px;margin-top:10px">${o.title}</h1>
+      <div class="price big">${kr(o.unit)} <span class="sm mut" style="font-weight:500">/ st</span></div>
+      ${o.promo ? `<div class="pill promo" style="margin:6px 0">${o.promo}</div>` : ""}
+      <div class="xs mut">Lowest price last 30 days: ${kr(o.low30)}</div>
+      <hr>
+      <table class="brk">
+        <tr><td>${o.qty} × ${kr(o.unit)}</td><td>${kr(o.unit*o.qty)}</td></tr>
+        ${o.items !== o.unit*o.qty ? `<tr><td>Promo ${o.promo}</td><td>−${kr(o.unit*o.qty-o.items)}</td></tr>` : ""}
+        <tr><td>Shipping</td><td>${o.ship == null ? "not shown" : o.ship ? kr(o.ship) : "free"}</td></tr>
+        <tr class="tot"><td>You pay</td><td>${total(o) != null ? kr(total(o)) : kr(o.items) + " + shipping"}</td></tr>
+      </table>
+      <p class="xs mut">Computed by code from the prices on the page, then checked against the store's cart.</p>
+      <div class="row" style="margin-top:12px"><div class="qty"><button>−</button><span>${o.qty}</span><button>+</button></div>
+        <button class="btn acc" style="flex:1" onclick="addToCart('${o.id}')">Add to cart</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn" style="flex:1" onclick="toggleCmp('${o.id}');go('compare')">⚖ Compare</button>
+        <button class="btn" style="flex:1" onclick="toast('Re-checking in a fresh sandbox… same price ✓')">↻ Re-verify now</button></div>
+    </div>
+  </div>
+  <div class="tabs"><button class="on" onclick="tab(0,this)">Price check</button><button onclick="tab(1,this)">Agent log</button><button onclick="tab(2,this)">Safety</button></div>
+  <div class="tabpane on"><ul class="check">${o.audit.map(a => `<li>${a}</li>`).join("")}</ul></div>
+  <div class="tabpane"><div class="log">${LOG.filter(l => l.startsWith(s.name.split(" ")[0].slice(0,6))).map(l => `<div>${l}</div>`).join("") || "<div>goto → search → open product → add to cart → read cart</div>"}</div></div>
+  <div class="tabpane"><p class="sm">This browser could only reach <b>${s.name.toLowerCase().replace(/ /g,"")}.se</b>. 4 tracker requests were blocked. No login, checkout or payment was attempted.</p></div>`;
+}
+function shot([tag, file]){
+  return `<a href="shots/${file}.jpg" target="_blank" rel="noopener"><img src="shots/${file}.jpg" alt="${tag} screenshot"></a><span class="tag" style="position:absolute;bottom:10px;left:10px;background:#000c;color:#fff;font-size:12px;border-radius:7px;padding:3px 8px">📸 ${tag} · sandbox screenshot</span>`;
+}
+function pickShot(i, b){ document.getElementById("gmain").innerHTML = shot(window._shots[i]);
+  b.parentNode.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); }
+function tab(i, b){ b.parentNode.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("#offerWrap .tabpane").forEach((p,j) => p.classList.toggle("on", i === j)); }
+
+/* ---------- compare ---------- */
+function toggleCmp(id, btn){ compare.has(id) ? compare.delete(id) : (compare.size >= 3 && compare.delete([...compare][0]), compare.add(id));
+  document.getElementById("cmpN").textContent = compare.size; if (btn) renderList(); if (!btn) return; toast(`${compare.size} offers in compare · <a href="#compare" style="color:var(--acc)">open</a>`); }
+function renderCompare(){
+  const list = [...compare].map(id => OFFERS.find(o => o.id === id));
+  if (list.length < 2) { document.getElementById("cmpWrap").innerHTML = `<div class="card empty"><h2>Pick at least 2 offers</h2><p class="mut">Use “⚖ Compare” on any result.</p><button class="btn pri" onclick="go('results')">Back to results</button></div>`; return; }
+  const best = list.filter(o => total(o) != null).sort((a,b) => total(a)-total(b))[0];
+  const row = (l, f) => `<tr><th>${l}</th>${list.map(o => `<td class="${o===best?"win":""}">${f(o)}</td>`).join("")}</tr>`;
+  document.getElementById("cmpWrap").innerHTML = `<div class="card" style="overflow:auto"><table class="cmp">
+    ${row("Store", o => `<div class="row">${dot(o.store)}<b>${STORES[o.store].name}</b></div>${o===best?'<div class="pill t-ok" style="margin-top:6px">Best for you</div>':""}`)}
+    ${row("Unit price", o => kr(o.unit))}${row("Promo", o => o.promo || "–")}
+    ${row("Items × " + list[0].qty, o => kr(o.items))}${row("Shipping", o => o.ship == null ? "not shown" : o.ship ? kr(o.ship) : "free")}
+    ${row("You pay", o => `<b class="price" style="font-size:20px">${total(o) != null ? kr(total(o)) : "unknown"}</b>`)}
+    ${row("Trust", o => trustPill(o.trust))}
+    ${row("", o => `<button class="btn acc sm" onclick="addToCart('${o.id}')">Add to cart</button>`)}
+  </table></div>
+  <div class="card pad" style="margin-top:14px"><b>Why:</b> <span class="mut">${best ? `${STORES[best.store].name} is cheapest for you at ${kr(total(best))} including shipping.` : ""} Every number here was computed by code; the AI only writes this sentence.</span></div>`;
+}
+
+/* ---------- cart ---------- */
+function addToCart(id){ const o = OFFERS.find(x => x.id === id); const ex = cart.find(c => c.id === id);
+  ex ? ex.qty++ : cart.push({id, qty:o.qty}); updateCartBadge(); toast(`✓ Added ${STORES[o.store].name} · ${o.qty} st <a href="javascript:openMini()" style="color:var(--acc);margin-left:6px">View cart</a>`); }
+function lineTotal(c){ const o = OFFERS.find(x => x.id === c.id); return o.items / o.qty * c.qty; }
+function updateCartBadge(){ document.getElementById("cartN").textContent = cart.reduce((a,c) => a + c.qty, 0); renderMini(); }
+function byStore(){ const g = {}; cart.forEach(c => { const o = OFFERS.find(x => x.id === c.id); (g[o.store] ||= []).push({c,o}); }); return g; }
+function totals(){ let items = 0, ship = 0, unknown = 0; Object.values(byStore()).forEach(arr => { arr.forEach(({c}) => items += lineTotal(c)); const o = arr[0].o; o.ship == null ? unknown++ : ship += o.ship; }); return {items, ship, unknown}; }
+function setQty(id, d){ const c = cart.find(x => x.id === id); c.qty += d; if (c.qty < 1) cart = cart.filter(x => x !== c); updateCartBadge(); route(); }
+function renderCart(){
+  const g = byStore(), t = totals();
+  if (!cart.length) { document.getElementById("cartWrap").innerHTML = `<div class="card empty" style="grid-column:1/-1"><div style="font-size:40px">🛒</div><h2>Your cart is empty</h2><p class="mut">Add offers from the results page.</p><button class="btn pri" onclick="go('results')">Browse results</button></div>`; return; }
+  document.getElementById("cartWrap").innerHTML = `<div>${Object.entries(g).map(([s, arr]) => `
+    <div class="card store-g"><div class="gh"><span class="row">${dot(s)}<b>${STORES[s].name}</b></span><span class="sm mut">Shipping: ${arr[0].o.ship == null ? "shown at store" : arr[0].o.ship ? kr(arr[0].o.ship) : "free"}</span></div>
+    ${arr.map(({c,o}) => `<div class="li">${pimg(o,"padding:6px")}<div><a href="#offer/${o.id}"><b>${o.title}</b></a><div class="xs">${trustPill(o.trust)} ${o.promo ? `<span class="pill promo">${o.promo}</span>` : ""}</div></div>
+      <div class="qty"><button onclick="setQty('${c.id}',-1)">−</button><span>${c.qty}</span><button onclick="setQty('${c.id}',1)">+</button></div><b style="min-width:70px;text-align:right">${kr(lineTotal(c))}</b></div>`).join("")}</div>`).join("")}
+    <button class="btn" onclick="go('results')">← Keep shopping</button></div>
+  <div class="card pad" style="position:sticky;top:120px"><h2>Order summary</h2><table class="sum" style="width:100%">
+    <tr><td>Items</td><td>${kr(t.items)}</td></tr><tr><td>Shipping</td><td>${kr(t.ship)}${t.unknown ? ` <span class="xs mut">+ ${t.unknown} store${t.unknown>1?"s":""} unknown</span>` : ""}</td></tr>
+    <tr><td><b>Estimated total</b></td><td><b class="price" style="font-size:22px">${kr(t.items + t.ship)}</b></td></tr></table>
+    <p class="xs mut">${Object.keys(g).length} store${Object.keys(g).length>1?"s":""}: you'll pay each store separately.</p>
+    <button class="btn acc block" onclick="coStep=1;go('checkout')">Checkout →</button></div>`;
+}
+function renderMini(){ const t = totals();
+  document.getElementById("miniB").innerHTML = cart.length ? cart.map(c => { const o = OFFERS.find(x => x.id === c.id);
+    return `<div class="vr">${pimg(o,"width:52px;padding:4px")}<div style="flex:1"><div class="sm"><b>${STORES[o.store].name}</b></div><div class="xs mut">${o.title}</div><div class="xs">${c.qty} st · ${kr(lineTotal(c))}</div></div></div>`; }).join("") : `<p class="mut">Your cart is empty.</p>`;
+  document.getElementById("miniT").textContent = kr(t.items + t.ship) + (t.unknown ? " + shipping" : ""); }
+function openMini(){ renderMini(); document.getElementById("mini").classList.add("on"); document.getElementById("scrim").classList.add("on"); }
+function closeMini(){ document.getElementById("mini").classList.remove("on"); document.getElementById("scrim").classList.remove("on"); }
+
+/* ---------- checkout ---------- */
+function renderCheckout(){
+  if (!cart.length) { go("cart"); return; }
+  document.querySelectorAll("#steps div").forEach((d,i) => d.className = i+1 < coStep ? "done" : i+1 === coStep ? "on" : "");
+  const g = byStore(), t = totals(); let main = "";
+  if (coStep === 1) main = `<div class="card pad"><h2>1 · Review</h2>${Object.entries(g).map(([s,arr]) => `<div class="vr">${dot(s)}<div style="flex:1"><b>${STORES[s].name}</b><div class="xs mut">${arr.map(({c,o}) => `${c.qty} × ${o.title}`).join(", ")}</div></div><b>${kr(arr.reduce((a,{c}) => a + lineTotal(c), 0))}</b></div>`).join("")}
+    <button class="btn pri" style="margin-top:14px" onclick="coStep=2;route()">Continue: confirm prices →</button></div>`;
+  if (coStep === 2) main = `<div class="card pad"><h2>2 · Confirm prices</h2><p class="sm mut">Prices can change. Before you buy, BlackBear re-reads every cart in a fresh sandbox.</p>
+    ${Object.keys(g).map((s,i) => `<div class="vr" id="cv${i}"><span class="spin"></span><b style="flex:1">${STORES[s].name}</b><span class="sm mut">re-checking…</span></div>`).join("")}
+    <button class="btn pri" id="cv-next" style="margin-top:14px" disabled onclick="coStep=3;route()">Continue →</button></div>`;
+  if (coStep === 3) main = `<div class="gate"><h2>3 · Buy at the stores</h2>
+    <p class="sm">For your safety <b>BlackBear never logs in, checks out or pays</b>. Open each store below; your items are listed so you can add them in seconds.</p>
+    ${Object.entries(g).map(([s,arr]) => `<div class="handoff"><div class="row">${dot(s)}<div><b>${STORES[s].name}</b><div class="xs mut">${arr.map(({c,o}) => `${c.qty} × ${o.title}`).join(", ")}</div></div></div>
+      <button class="btn acc" onclick="this.outerHTML='<span class=&quot;pill t-ok&quot;>✓ Opened</span>';toast('Would open ${STORES[s].name} in a new tab (mockup)')">Continue at ${STORES[s].name} ↗</button></div>`).join("")}
+    <p class="xs mut" style="margin-top:12px">Tip: prices were confirmed a moment ago. If a store shows a different price, come back and press Re-verify.</p></div>`;
+  document.getElementById("coWrap").innerHTML = main + `<div class="card pad"><h2>Summary</h2><table class="sum" style="width:100%"><tr><td>Items</td><td>${kr(t.items)}</td></tr><tr><td>Shipping</td><td>${kr(t.ship)}${t.unknown ? " + unknown" : ""}</td></tr><tr><td><b>Total</b></td><td><b>${kr(t.items+t.ship)}</b></td></tr></table>
+    <hr><div class="xs mut">🛡️ Checked in ${Object.keys(g).length} isolated sandboxes · <a href="#safety" style="color:var(--blue)">how</a></div></div>`;
+  if (coStep === 2) Object.keys(g).forEach((s,i) => setTimeout(() => {
+    document.getElementById("cv"+i).innerHTML = `<span style="color:var(--ok)">✓</span><b style="flex:1">${STORES[s].name}</b><span class="sm" style="color:var(--ok)">same price</span>`;
+    if (i === Object.keys(g).length-1) document.getElementById("cv-next").disabled = false; }, 700 + i*600));
+}
+
+/* ---------- toast ---------- */
+let tt; function toast(h){ const t = document.getElementById("toast"); t.innerHTML = h; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("on"), 2600); }
+route(); updateCartBadge();
+</script>
+</body>
+</html>

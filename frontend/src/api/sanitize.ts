@@ -122,7 +122,8 @@ export function sanitizeOffer(v: unknown): Offer | null {
     price_sek: price,
     previous_price_sek: nullableNum(v.previous_price_sek) ?? null,
     lowest_30d_price_sek: nullableNum(v.lowest_30d_price_sek) ?? null,
-    shipping_sek: num(v.shipping_sek) ?? 0,
+    shipping_sek: nullableNum(v.shipping_sek) ?? null,
+    unranked_reason: str(v.unranked_reason, 60),
     in_stock: bool(v.in_stock) ?? true,
     promos: Array.isArray(v.promos)
       ? v.promos

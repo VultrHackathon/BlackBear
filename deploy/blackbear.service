@@ -1,0 +1,14 @@
+[Unit]
+Description=BlackBear API (FastAPI)
+After=network-online.target docker.service
+
+[Service]
+WorkingDirectory=/opt/app/BlackBear
+EnvironmentFile=/opt/app/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/app/venv/bin/uvicorn backend.app:app --host 127.0.0.1 --port 8000 --proxy-headers
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

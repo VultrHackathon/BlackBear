@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlackBear – sandboxed deal hunter</title>
+<style>
+:root{--bg:#0d0f12;--panel:#161a1f;--line:#252b33;--txt:#e6e9ee;--mut:#8b95a3;--acc:#ffb020;--ok:#2ecc71;--warn:#f5a623;--bad:#ff5c5c;--blue:#4da3ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--line)}
+header h1{font-size:19px;margin:0}header .tag{color:var(--mut);font-size:13px}
+main{padding:18px 22px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 320px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px}
+form{display:grid;grid-template-columns:1fr 90px auto;gap:10px;align-items:end}
+label{font-size:12px;color:var(--mut);display:block;margin-bottom:4px}
+input[type=text],input[type=number]{width:100%;padding:9px 10px;border-radius:7px;border:1px solid var(--line);background:#0f1216;color:var(--txt);font-size:14px}
+button{background:var(--acc);color:#111;border:0;border-radius:7px;padding:9px 16px;font-weight:600;cursor:pointer}
+button.sec{background:#2a313a;color:var(--txt)}button:disabled{opacity:.5;cursor:default}
+.opts{grid-column:1/-1;display:flex;gap:14px;flex-wrap:wrap;color:var(--mut);font-size:13px}
+.opts label{display:inline-flex;gap:5px;align-items:center;margin:0;color:var(--txt);font-size:13px}
+#status{font-size:13px;color:var(--mut);margin-top:8px}
+.plan{display:none}.plan.show{display:block}.chips span{display:inline-block;background:#222831;border:1px solid var(--line);border-radius:99px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12px}
+.lanes{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.lane{background:#11151a;border:1px solid var(--line);border-radius:9px;overflow:hidden;display:flex;flex-direction:column}
+.lane .hd{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:600}
+.pill{font-size:11px;padding:2px 8px;border-radius:99px;background:#2a313a;color:var(--mut);font-weight:500}
+.pill.running{background:#123b5c;color:#8cc8ff}.pill.destroyed{background:#2b2f35;color:#9aa4b1}.pill.ok{background:#12412a;color:#7ee2a8}.pill.err{background:#4a1c1c;color:#ff9b9b}
+.lane img{width:100%;aspect-ratio:1280/900;object-fit:cover;object-position:top;background:#0a0c0f;display:block;cursor:zoom-in}
+.log{font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:170px;overflow:auto;padding:6px 10px;color:#c9d1db}
+.log div{padding:2px 0;border-bottom:1px dashed #1f252c}.log .blk{color:var(--bad)}.log .ext{color:var(--acc)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--mut);font-weight:500}.big{font-size:18px;font-weight:700}
+.trust{font-size:12px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.trust.verified{background:#12412a;color:#7ee2a8}.trust.questionable,.trust.unverified{background:#4a3712;color:#ffd27a}.trust.mismatch{background:#4a1c1c;color:#ff9b9b}
+.find{font-size:12px;color:var(--mut);margin-top:3px}
+.thumbs img{height:46px;border:1px solid var(--line);border-radius:4px;margin-right:4px;cursor:zoom-in}
+.explain{background:#1b1f14;border:1px solid #3d4a1d;border-radius:8px;padding:10px 12px;margin-top:12px}
+.explain small{color:var(--mut)}
+.score{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:13px}.score b{font-variant-numeric:tabular-nums}
+.score .hi{color:var(--bad)}
+#secfeed{font:12px/1.35 ui-monospace,Menlo,monospace;max-height:280px;overflow:auto;margin-top:10px}
+#secfeed div{padding:3px 0;border-bottom:1px dashed #1f252c}#secfeed .high{color:var(--bad)}#secfeed .medium{color:var(--warn)}#secfeed .low{color:var(--mut)}
+#zoom{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:9}#zoom img{max-width:95vw;max-height:95vh}
+.muted{color:var(--mut)}@media(max-width:900px){main{grid-template-columns:1fr}form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>🐻 BlackBear</h1><span class="tag">LLMs read and explain · code does the maths · the sandbox keeps a tricked agent harmless</span></header>
+<main>
+<div style="display:grid;gap:16px;min-width:0">
+  <section class="panel">
+    <h2>1 · Ask</h2>
+    <form id="f">
+      <div><label>What do you want to buy?</label><input id="q" type="text" value="Hjärtats saffran 0,5 g" required></div>
+      <div><label>Quantity</label><input id="qty" type="number" min="1" max="20" value="2"></div>
+      <button id="go">Hunt</button>
+      <div class="opts" id="mships"><span>Memberships I have:</span></div>
+      <div class="opts"><label><input type="checkbox" id="auto" checked> Auto-approve the plan</label>
+        <label><input type="checkbox" id="trap"> Include the hostile demo shop (containment demo)</label>
+        <label><input type="checkbox" id="pwn"> …and simulate a compromised scout there</label></div>
+    </form>
+    <div id="status"></div>
+  </section>
+
+  <section class="panel plan" id="planp">
+    <h2>2 · Plan</h2>
+    <div id="plan"></div>
+    <div style="margin-top:10px"><button id="approve" style="display:none">Approve plan &amp; dispatch sandboxes</button></div>
+  </section>
+
+  <section class="panel" id="lanesp" style="display:none">
+    <h2>3–5 · Sandboxed scouts (live)</h2>
+    <div class="lanes" id="lanes"></div>
+  </section>
+
+  <section class="panel" id="resp" style="display:none">
+    <h2>6–10 · Ranked deals</h2>
+    <table><thead><tr><th>#</th><th>Store</th><th>You pay</th><th>Guest / member</th><th>Trust</th><th>Re-verify</th><th>Evidence</th></tr></thead><tbody id="deals"></tbody></table>
+    <div class="explain" id="explain" style="display:none"></div>
+  </section>
+</div>
+
+<aside style="display:grid;gap:16px;align-content:start">
+  <section class="panel">
+    <h2>Security scoreboard</h2>
+    <div class="score" id="score"></div>
+    <div id="secfeed"></div>
+  </section>
+  <section class="panel">
+    <h2>Cost &amp; speed</h2>
+    <div class="score" id="metrics"><span class="muted">No hunt yet</span></div>
+  </section>
+</aside>
+</main>
+<div id="zoom" onclick="this.style.display='none'"><img></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let hunt = null, es = null;
+const SCORE_LABELS = {steps_checked:'Steps checked', actions_blocked:'Actions blocked', injections_detected:'Injections detected',
+  metadata_or_private_blocked:'Metadata / private IP blocked', egress_blocked:'Off-domain egress blocked', trackers_blocked:'Trackers blocked',
+  sandboxes_created:'Sandboxes created', sandboxes_destroyed:'Sandboxes destroyed'};
+
+fetch('/api/stores').then(r => r.json()).then(d => {
+  for (const m of d.memberships) $('#mships').insertAdjacentHTML('beforeend', `<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`);
+});
+renderScore({});
+
+$('#f').onsubmit = async e => {
+  e.preventDefault();
+  const body = {query: $('#q').value, quantity: +$('#qty').value, auto_approve: $('#auto').checked, include_trap: $('#trap').checked, simulate_compromise: $('#pwn').checked,
+    memberships: [...document.querySelectorAll('#mships input:checked')].map(i => i.value)};
+  $('#go').disabled = true; reset();
+  const r = await fetch('/api/hunts', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const d = await r.json();
+  if (!r.ok) { $('#status').textContent = d.detail || 'Error'; $('#go').disabled = false; return; }
+  hunt = d.id; listen(hunt);
+};
+$('#approve').onclick = async () => { await fetch(`/api/hunts/${hunt}/approve`, {method:'POST'}); $('#approve').style.display = 'none'; };
+
+function reset() {
+  for (const id of ['#plan','#lanes','#deals','#secfeed']) $(id).innerHTML = '';
+  $('#planp').classList.remove('show'); $('#lanesp').style.display = 'none'; $('#resp').style.display = 'none';
+  $('#explain').style.display = 'none'; renderScore({});
+}
+function listen(id) {
+  if (es) es.close();
+  es = new EventSource(`/api/hunts/${id}/events`);
+  es.onmessage = m => handle(JSON.parse(m.data));
+}
+function lane(store, mode) {
+  const key = `${mode}-${store}`; let el = document.getElementById('lane-' + key);
+  if (!el) {
+    $('#lanesp').style.display = '';
+    $('#lanes').insertAdjacentHTML('beforeend', `<div class="lane" id="lane-${key}"><div class="hd"><span>${esc(storeName(store))}${mode === 'verify' ? ' · re-verify' : ''}</span><span class="pill">starting</span></div><img alt=""><div class="log"></div></div>`);
+    el = document.getElementById('lane-' + key);
+    el.querySelector('img').onclick = e => zoom(e.target.src);
+  }
+  return el;
+}
+let PLAN = null; const storeName = id => (PLAN?.stores.find(s => s.id === id) || {}).name || id;
+function shot(name) { return `/api/hunts/${hunt}/evidence/${encodeURIComponent(name)}`; }
+function zoom(src) { if (!src) return; $('#zoom img').src = src; $('#zoom').style.display = 'flex'; }
+
+function handle(ev) {
+  const d = ev.data;
+  switch (ev.kind) {
+    case 'status':
+      $('#status').innerHTML = `<b>${esc(d.status)}</b> · ${esc(d.message)}`;
+      if (d.status === 'awaiting_approval') $('#approve').style.display = '';
+      if (d.status === 'done' || d.status === 'error') { $('#go').disabled = false; es && es.close(); }
+      break;
+    case 'plan':
+      PLAN = d; $('#planp').classList.add('show');
+      $('#plan').innerHTML = `<div class="big">${esc(d.product)} ${d.size ? '· ' + esc(d.size) : ''} × ${d.quantity}</div>
+        <div class="chips" style="margin:6px 0">${d.criteria.map(c => `<span>${esc(c)}</span>`).join('')}</div>
+        <div class="muted">Memberships: ${esc(d.memberships.join(', ') || 'none')} · ${esc(d.notes)}</div>
+        <table style="margin-top:8px"><tr><th>Store</th><th>Search</th><th>Sandbox may reach</th></tr>
+        ${d.stores.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.search)}</td><td class="muted" style="font-size:12px">${esc(s.allow.join(', '))}</td></tr>`).join('')}</table>`;
+      break;
+    case 'sandbox': {
+      const el = lane(d.store, d.mode), p = el.querySelector('.pill');
+      p.textContent = d.state + (d.limits ? '' : ''); p.className = 'pill ' + d.state;
+      if (d.limits) el.querySelector('.log').insertAdjacentHTML('beforeend', `<div class="muted">sandbox ${esc(d.sandbox)} · ${esc(d.limits.runtime)} · ${esc(d.limits.memory)} RAM · ${esc(d.limits.cpus)} CPU · ${d.limits.timeout_s}s cap</div>`);
+      if (d.state === 'destroyed') el.querySelector('.log').insertAdjacentHTML('beforeend', `<div class="muted">sandbox destroyed ✓</div>`);
+      break; }
+    case 'step': {
+      const el = lane(d.store, d.mode), a = d.action || {};
+      if (d.screenshot) el.querySelector('img').src = shot(d.screenshot);
+      const what = `${a.action}${a.i !== undefined ? ' [' + a.i + ']' : ''}${a.text ? ' "' + a.text + '"' : ''}${a.url ? ' ' + a.url : ''}`;
+      const log = el.querySelector('.log');
+      log.insertAdjacentHTML('beforeend', `<div class="${d.allowed ? (a.action === 'extract' || a.action === 'done' ? 'ext' : '') : 'blk'}">#${d.step} ${esc(what)}${d.allowed ? '' : ' ⛔ ' + esc(d.blocked_reason)}<br><span class="muted">${esc((a.thought || '').slice(0, 140))}</span></div>`);
+      log.scrollTop = log.scrollHeight; break; }
+    case 'scout_result': {
+      const el = lane(d.store, d.mode || 'hunt'), p = el.querySelector('.pill');
+      p.textContent = d.status === 'ok' ? 'cart read ✓' : d.status; p.className = 'pill ' + (d.status === 'ok' ? 'ok' : 'err');
+      break; }
+    case 'security': renderScore(d.counts); secEvent(d.event); break;
+    case 'metrics': renderMetrics(d); renderScore(d.security); break;
+    case 'deal': $('#resp').style.display = ''; break;
+    case 'result': renderResult(d); break;
+  }
+}
+function renderScore(c) {
+  $('#score').innerHTML = Object.entries(SCORE_LABELS).map(([k, l]) =>
+    `<span>${l}</span><b class="${['actions_blocked','injections_detected','metadata_or_private_blocked'].includes(k) && c[k] ? 'hi' : ''}">${c[k] || 0}</b>`).join('');
+}
+function secEvent(e) {
+  $('#secfeed').insertAdjacentHTML('afterbegin', `<div class="${esc(e.severity)}">${esc(e.kind.replace(/_/g,' '))} · ${esc(storeName(e.store))}<br>${esc(e.detail)}</div>`);
+}
+function renderMetrics(m) {
+  const per = Object.entries(m.by_model || {}).map(([k, v]) => `<span class="muted">${esc(k)}</span><b>${v.calls} · $${v.cost_usd.toFixed(4)}</b>`).join('');
+  $('#metrics').innerHTML = `<span>Elapsed</span><b>${m.elapsed_s}s</b><span>LLM calls</span><b>${m.calls}</b>
+    <span>Tokens</span><b>${(m.prompt_tokens + m.completion_tokens).toLocaleString()}</b><span>Inference cost</span><b>$${m.cost_usd.toFixed(4)}</b>${per}`;
+}
+function kr(x) { return x === null || x === undefined ? '–' : `${(+x).toLocaleString('sv-SE')} kr`; }
+function renderResult(r) {
+  $('#resp').style.display = '';
+  $('#deals').innerHTML = r.deals.map(d => {
+    const ev = Object.entries(d.evidence || {}).concat(Object.entries(d.reverify?.evidence || {}).map(([k, v]) => ['re-' + k, v]));
+    return `<tr>
+      <td class="big">${d.rank || '–'}</td>
+      <td><b>${esc(d.store_name)}</b><div class="find">${esc(d.product_name || '')}</div>${d.product_url ? `<div class="find"><a style="color:var(--blue)" href="${esc(d.product_url)}" target="_blank" rel="noopener">product page ↗</a></div>` : ''}</td>
+      <td><span class="big">${kr(d.your_total)}</span><div class="find">${d.quantity} × ${kr(d.unit_price)}${d.applied_promo ? ' · ' + esc(d.applied_promo) : ''}${d.shipping !== null && d.shipping !== undefined ? ' · shipping ' + kr(d.shipping) : ' · shipping ' + esc(d.shipping_note)}</div></td>
+      <td>guest ${kr(d.guest_total)}${d.member_items_total !== null && d.member_items_total !== undefined ? `<div class="find">${esc(d.member_promo_membership)}: ${kr(d.member_items_total)} (${esc(d.member_promo)})</div>` : ''}<div class="find">cart read: ${kr(d.cart_total)}</div></td>
+      <td><span class="trust ${esc(d.audit.label)}">${{verified:'✓ Verified',questionable:'⚠️ Questionable',unverified:'? Unverified',mismatch:'✗ Mismatch'}[d.audit.label]}</span>${d.audit.findings.map(f => `<div class="find">${esc(f)}</div>`).join('')}</td>
+      <td>${d.reverify ? (d.reverify.status === 'same' ? '✓ same price' : d.reverify.status === 'changed' ? '⚠️ changed' : '– ' + esc(d.reverify.detail || 'failed')) : '<span class="muted">–</span>'}</td>
+      <td class="thumbs">${ev.map(([k, v]) => v ? `<img title="${esc(k)}" src="${shot(v)}" onclick="zoom(this.src)">` : '').join('')}</td></tr>`;
+  }).join('') || '<tr><td colspan="7" class="muted">No store returned a usable offer.</td></tr>';
+  const x = r.explanation;
+  $('#explain').style.display = '';
+  $('#explain').innerHTML = `${esc(x.explanation)}<br><small>${x.source === 'llm' ? 'Written by the compare agent, every number checked against code-computed values' : 'Written by code (the model\'s text was rejected by the number check)'}${x.rejected.length ? ` · ${x.rejected.length} draft(s) rejected for unverified numbers` : ''}</small>`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Public HTTPS entry point. Replace the host name with your own domain if you have one.
+70-34-209-197.sslip.io {
+	encode gzip
+	reverse_proxy 127.0.0.1:8000 {
+		flush_interval -1
+	}
+}

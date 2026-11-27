@@ -10,3 +10,4 @@ dist-ssr
 .vite
 coverage
 npm-debug.log*
+dist-mockup

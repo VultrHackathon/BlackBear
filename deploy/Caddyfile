@@ -2,10 +2,16 @@
 70-34-209-197.sslip.io {
 	encode gzip
 
-	# Static e-commerce design mockup (example data). Served by Caddy directly,
-	# so it is available without restarting the API.
+	# E-commerce storefront (React build with base /mockup/, talks to the real API).
 	redir /mockup /mockup/
 	handle_path /mockup/* {
+		root * /opt/app/BlackBear/frontend/dist-mockup
+		file_server
+	}
+
+	# The earlier static, clickable design mockup (example data).
+	redir /mockup-static /mockup-static/
+	handle_path /mockup-static/* {
 		root * /opt/app/BlackBear/web/mockup
 		file_server
 	}

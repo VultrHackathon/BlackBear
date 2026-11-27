@@ -1,18 +1,19 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { MessageCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Chat, useConversation, type Conversation } from "./components/Chat";
 import { ApprovalGate } from "./components/ApprovalGate";
-import { CompareDrawer } from "./components/CompareDrawer";
-import { Header } from "./components/Header";
-import { HuntForm } from "./components/HuntForm";
-import { MetricsBar } from "./components/MetricsBar";
-import { PlanReview } from "./components/PlanReview";
-import { Results } from "./components/Results";
-import { SandboxGrid } from "./components/SandboxGrid";
-import { SecurityScoreboard } from "./components/SecurityScoreboard";
-import { Pill } from "./components/ui";
+import { MiniCart, ToastHost } from "./components/ShopOverlays";
+import { SiteFooter, SiteHeader } from "./components/SiteChrome";
+import { useRoute } from "./lib/router";
+import { CartPage } from "./pages/CartPage";
+import { CheckoutPage } from "./pages/CheckoutPage";
+import { ComparePage } from "./pages/ComparePage";
+import { HomePage } from "./pages/HomePage";
+import { OfferPage } from "./pages/OfferPage";
+import { ResultsPage } from "./pages/ResultsPage";
+import { SafetyPage } from "./pages/SafetyPage";
 import { useHuntState } from "./state/HuntContext";
-
-type Tab = "hunt" | "security";
-const TABS: Tab[] = ["hunt", "security"];
+import { useShop } from "./state/ShopContext";
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => window.matchMedia?.(query).matches ?? false);
@@ -27,115 +28,139 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-/** Mobile/tablet only: switches between the hunt and the security scoreboard. */
-function MobileTabs({ tab, onChange, attacks }: { tab: Tab; onChange: (t: Tab) => void; attacks: number }) {
-  const refs = useRef<Record<Tab, HTMLButtonElement | null>>({ hunt: null, security: null });
+/**
+ * Below the large breakpoint the chat lives in a drawer: a native modal dialog that
+ * slides in from the left. A floating button opens it and shows when the agent asks.
+ */
+function ChatDrawer({ conv }: { conv: Conversation }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
+  const asks = conv.question !== null;
+  const { phase, startedAt } = useHuntState();
 
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
-    let next: number | null = null;
-    if (e.key === "ArrowRight") next = (i + 1) % TABS.length;
-    if (e.key === "ArrowLeft") next = (i - 1 + TABS.length) % TABS.length;
-    if (e.key === "Home") next = 0;
-    if (e.key === "End") next = TABS.length - 1;
-    if (next === null) return;
-    e.preventDefault();
-    const t = TABS[next] as Tab;
-    onChange(t);
-    refs.current[t]?.focus();
-  };
+  // Once a hunt starts running, step aside so the sandboxes are in view.
+  const shownFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (phase === "running" && startedAt !== shownFor.current) {
+      shownFor.current = startedAt;
+      setOpen(false);
+    }
+  }, [phase, startedAt]);
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
 
   return (
-    <div className="sticky top-0 z-30 border-b border-line bg-canvas/95 backdrop-blur lg:hidden">
-      <div role="tablist" aria-label="Sections" className="mx-auto flex max-w-[1600px] gap-1 px-4 sm:px-6">
-        {TABS.map((t, i) => {
-          const selected = tab === t;
-          return (
-            <button
-              key={t}
-              ref={(el) => {
-                refs.current[t] = el;
-              }}
-              type="button"
-              role="tab"
-              id={`tab-${t}`}
-              aria-selected={selected}
-              aria-controls={`panel-${t}`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => onChange(t)}
-              onKeyDown={(e) => onKeyDown(e, i)}
-              className={`-mb-px inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm transition-colors ${
-                selected ? "border-ink font-medium text-ink" : "border-transparent text-muted hover:text-ink"
-              }`}
-            >
-              {t === "hunt" ? "Hunt" : "Security"}
-              {t === "security" && attacks > 0 ? (
-                <Pill size="xs" tone="strong" mono className="tabular-nums">
-                  {attacks}
-                  <span className="sr-only"> attacks</span>
-                </Pill>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="fixed right-4 bottom-4 z-30 flex max-w-[calc(100vw-2rem)] items-center gap-2.5 rounded-full bg-ink py-2 pr-4 pl-2 text-sm text-white shadow-float motion-safe:animate-pop"
+      >
+        <span className="relative grid size-9 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
+          <MessageCircle className="size-4" aria-hidden="true" />
+          {asks ? (
+            <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-white text-[0.6rem] font-extrabold text-ink ring-2 ring-ink">
+              1
+            </span>
+          ) : null}
+        </span>
+        <span className="min-w-0 truncate">
+          {asks ? (
+            <>
+              <b>blackbear asks: </b>
+              {conv.question?.text}
+            </>
+          ) : (
+            <b>Ask blackbear</b>
+          )}
+        </span>
+      </button>
+      <dialog
+        ref={ref}
+        aria-label="Chat with blackbear"
+        onClose={() => setOpen(false)}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setOpen(false);
+        }}
+        className="fixed inset-y-0 right-auto left-0 m-0 h-dvh max-h-none w-[min(26rem,100vw)] max-w-none bg-surface p-0 text-ink shadow-float backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+      >
+        <Chat conv={conv} variant="drawer" onNavigate={() => setOpen(false)} onClose={() => setOpen(false)} />
+      </dialog>
+    </>
   );
 }
 
+/**
+ * The storefront: the team's mockup layout in the centre, the AI agent in a left
+ * sidebar on every page (a drawer on small screens).
+ */
 export default function App() {
-  const { security, compare } = useHuntState();
-  const [tab, setTab] = useState<Tab>("hunt");
-  const desktop = useMediaQuery("(min-width: 1024px)");
+  const route = useRoute();
+  const { includeDelivery, setIncludeDelivery } = useShop();
+  const conv = useConversation(includeDelivery, setIncludeDelivery);
+  const wide = useMediaQuery("(min-width: 1024px)");
 
-  const panel = (t: Tab) =>
-    desktop ? {} : { role: "tabpanel" as const, id: `panel-${t}`, "aria-labelledby": `tab-${t}` };
+  let page;
+  switch (route.name) {
+    case "results":
+      page = <ResultsPage />;
+      break;
+    case "offer":
+      page = <OfferPage key={route.id} id={route.id} />;
+      break;
+    case "compare":
+      page = <ComparePage />;
+      break;
+    case "cart":
+      page = <CartPage />;
+      break;
+    case "checkout":
+      page = <CheckoutPage />;
+      break;
+    case "safety":
+      page = <SafetyPage />;
+      break;
+    default:
+      page = <HomePage conv={conv} />;
+  }
 
   return (
     <>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:border focus:border-line-strong focus:bg-raised focus:px-3 focus:py-2 focus:text-sm"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("main")?.focus();
+        }}
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:border focus:bg-surface focus:px-3 focus:py-2 focus:text-sm"
       >
         Skip to content
       </a>
 
-      <Header />
-      <MobileTabs tab={tab} onChange={setTab} attacks={security.length} />
+      <SiteHeader route={route} onSearch={conv.ask} />
 
-      <div className="mx-auto grid max-w-[1600px] items-start gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <div {...panel("hunt")} className={tab === "hunt" ? "min-w-0" : "hidden min-w-0 lg:block"}>
-          <main id="main" tabIndex={-1} className="space-y-6 outline-none">
-            <HuntForm />
-            <PlanReview />
-            <SandboxGrid />
-            <Results />
-          </main>
-        </div>
-
-        <aside
-          {...panel("security")}
-          aria-label="Security"
-          className={tab === "security" ? "min-w-0" : "hidden min-w-0 lg:block"}
-        >
-          <div
-            className="lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
-            tabIndex={desktop ? 0 : undefined}
-            aria-label={desktop ? "Security scoreboard, scrollable" : undefined}
-            role={desktop ? "region" : undefined}
-          >
-            <SecurityScoreboard />
-          </div>
-        </aside>
+      <div className="mx-auto grid max-w-[1440px] items-start gap-6 px-4 pt-6 sm:px-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-8">
+        {wide ? (
+          <aside aria-label="blackbear agent" className="sticky top-[5.5rem] h-[calc(100dvh-8.25rem)]">
+            <Chat conv={conv} variant="sidebar" />
+          </aside>
+        ) : null}
+        <main id="main" tabIndex={-1} className="min-w-0 outline-none">
+          {page}
+        </main>
       </div>
 
-      <MetricsBar />
-
-      {/* Room for the compare drawer so it never hides the last offer. */}
-      <div
-        aria-hidden="true"
-        className={compare.length === 2 ? "h-[min(70vh,44rem)]" : compare.length === 1 ? "h-20" : "hidden"}
-      />
-      <CompareDrawer />
+      <SiteFooter />
+      {wide ? null : <ChatDrawer conv={conv} />}
+      <MiniCart />
+      <ToastHost />
+      {/* Approve-before-submit gate: pops up when an agent wants to open a checkout. */}
       <ApprovalGate />
     </>
   );

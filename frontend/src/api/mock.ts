@@ -105,6 +105,10 @@ interface Listing {
   model_number?: string;
   path: string;
   art: ProductArt;
+  /** Product photo, served from frontend/public/products. */
+  image: string;
+  /** The store doesn't show shipping before checkout: the offer is not ranked (as the backend does). */
+  shippingHidden?: boolean;
   /** Advertised price on the product page. */
   price_sek: number;
   /** Price per unit that the cart actually charged, if different. */
@@ -241,6 +245,7 @@ const TV: Scenario = {
           model_number: "OLED65C44LA",
           path: "/product/tv-ljud-bild/tv/oled-tv/lg-65-c4-4k-oled-evo-smart-tv-2024/812345",
           art: "tv",
+          image: `${import.meta.env.BASE_URL}products/lg-oled65c4.webp`,
           price_sek: 14990,
           previous_price_sek: 18990,
           lowest_30d_price_sek: 18990,
@@ -277,6 +282,7 @@ const TV: Scenario = {
           model_number: "OLED65C44LA",
           path: "/art/tv-ljud/tv/oled-tv/lg-oled65c44la/1035021.8925/",
           art: "tv",
+          image: `${import.meta.env.BASE_URL}products/lg-oled65c4.webp`,
           price_sek: 15490,
           previous_price_sek: 17990,
           lowest_30d_price_sek: 17990,
@@ -317,6 +323,7 @@ const TV: Scenario = {
           model_number: "OLED65C44LA",
           path: "/tv-och-ljud/tv/oled-tv/lg-65-oled65c4-4k-oled-evo-tv/p-3324567/",
           art: "tv",
+          image: `${import.meta.env.BASE_URL}products/lg-oled65c4.webp`,
           price_sek: 14490,
           previous_price_sek: 24990,
           lowest_30d_price_sek: 13990,
@@ -350,6 +357,7 @@ const TV: Scenario = {
           model_number: "QE65S90DAEXXC",
           path: "/se/product/371234-Samsung-65-S90D-4K-OLED-Smart-TV",
           art: "tv",
+          image: `${import.meta.env.BASE_URL}products/samsung-qe65s90d.webp`,
           price_sek: 15990,
           previous_price_sek: 19990,
           lowest_30d_price_sek: 19990,
@@ -396,10 +404,12 @@ const TV: Scenario = {
           model_number: "OLED65C44LA",
           path: "/produkt/2225678/lg-oled65c4-65-4k-oled-evo-144-hz",
           art: "tv",
+          image: `${import.meta.env.BASE_URL}products/lg-oled65c4.webp`,
           price_sek: 14790,
           previous_price_sek: 16990,
           lowest_30d_price_sek: 16990,
           shipping_sek: 349,
+          shippingHidden: true,
           in_stock: true,
           badge: "BLACK WEEK",
           promos: [],
@@ -409,6 +419,7 @@ const TV: Scenario = {
             reasons: [
               `The previous price (${formatSek(16990)}) equals the 30-day lowest price.`,
               "The cart matched the product page.",
+              "Shipping cost was not shown, so it is not included.",
             ],
           }),
         },
@@ -427,6 +438,7 @@ const TV: Scenario = {
           model_number: "OLED65C44LA",
           path: "/product/1312345/tv-ljud-bild/tv/lg-65-oled-c4-oled65c44la",
           art: "tv",
+          image: `${import.meta.env.BASE_URL}products/lg-oled65c4.webp`,
           price_sek: 13990,
           cart_unit_sek: 14490,
           previous_price_sek: 16490,
@@ -462,6 +474,7 @@ const TV: Scenario = {
           model_number: "OLED65C44LA",
           path: "/tv-ljud-bild/tv/lg-oled65c4-65-oled-tv-p88123456",
           art: "tv",
+          image: `${import.meta.env.BASE_URL}products/lg-oled65c4.webp`,
           price_sek: 13790,
           previous_price_sek: null,
           lowest_30d_price_sek: null,
@@ -543,6 +556,7 @@ const SAFFRAN: Scenario = {
           short: "Hjärtats saffran 0,5 g",
           path: "/varumarken/hjartat/hjartats-saffran-finmald-0-5-g",
           art: "jar",
+          image: `${import.meta.env.BASE_URL}products/hjartat-saffran.webp`,
           price_sek: 35,
           previous_price_sek: null,
           lowest_30d_price_sek: 35,
@@ -594,10 +608,11 @@ const SAFFRAN: Scenario = {
       outcome: {
         kind: "offer",
         listing: {
-          title: "Saffran malen 0,5 g",
-          short: "saffran 0,5 g",
+          title: "Apotea Saffran 0,5 gram, finmalen",
+          short: "Apotea saffran 0,5 g",
           path: "/saffran-malen-0-5-g",
           art: "jar",
+          image: `${import.meta.env.BASE_URL}products/apotea-saffran.webp`,
           price_sek: 29,
           previous_price_sek: null,
           lowest_30d_price_sek: 29,
@@ -629,10 +644,11 @@ const SAFFRAN: Scenario = {
       outcome: {
         kind: "offer",
         listing: {
-          title: "Saffran 0,5 g, malen",
-          short: "saffran 0,5 g",
+          title: "Sonnentor Saffran eko 0,5 g",
+          short: "Sonnentor saffran 0,5 g",
           path: "/mat-och-dryck/kryddor/saffran-0-5-g",
           art: "jar",
+          image: `${import.meta.env.BASE_URL}products/kronans-saffran.webp`,
           price_sek: 33,
           previous_price_sek: 39,
           lowest_30d_price_sek: 39,
@@ -671,10 +687,11 @@ const SAFFRAN: Scenario = {
       outcome: {
         kind: "offer",
         listing: {
-          title: "Saffran 0,5 g",
-          short: "saffran 0,5 g",
+          title: "Herbaria Saffran malen eko 0,5 g",
+          short: "Herbaria saffran 0,5 g",
           path: "/produkter/saffran-0-5-g-123456/",
           art: "jar",
+          image: `${import.meta.env.BASE_URL}products/apoteket-saffran.webp`,
           price_sek: 37,
           previous_price_sek: 42,
           lowest_30d_price_sek: 42,
@@ -833,7 +850,8 @@ function shot(store: MockStore, scene: Scene, url: string): string {
 
 function cartScene(l: Listing, ctx: Ctx, totals: Totals, withCode: boolean): Scene {
   const discounts = totals.lines.filter((x) => x.label !== "Frakt");
-  const shipping = totals.lines.filter((x) => x.label === "Frakt");
+  const shipping = l.shippingHidden ? [] : totals.lines.filter((x) => x.label === "Frakt");
+  const note = l.cartNote ?? (l.shippingHidden ? "Frakt beräknas i kassan." : undefined);
   return {
     kind: "cart",
     art: l.art,
@@ -841,9 +859,9 @@ function cartScene(l: Listing, ctx: Ctx, totals: Totals, withCode: boolean): Sce
     qty: ctx.quantity,
     unit: totals.unit,
     lines: [...discounts, ...shipping],
-    total: totals.total,
+    total: l.shippingHidden ? totals.subtotal : totals.total,
     ...(withCode && l.codeEntry ? { code: l.codeEntry, codeOk: true } : {}),
-    ...(l.cartNote ? { note: l.cartNote } : {}),
+    ...(note ? { note } : {}),
   };
 }
 
@@ -865,15 +883,17 @@ function createOfferEntry(hunt: MockHunt, run: Run, l: Listing): OfferEntry {
     price_sek: l.price_sek,
     previous_price_sek: l.previous_price_sek,
     lowest_30d_price_sek: l.lowest_30d_price_sek,
-    shipping_sek: totals.shipping,
+    shipping_sek: l.shippingHidden ? null : totals.shipping,
+    ...(l.shippingHidden ? { unranked_reason: "shipping not shown" } : {}),
     in_stock: l.in_stock,
     promos: l.promos.map((p) =>
       p.type === "free_shipping_over" ? { ...p, applied_in_cart: totals.shipping === 0 } : p,
     ),
     quantity: ctx.quantity,
-    effective_total_sek: totals.total,
-    effective_unit_sek: totals.perUnit,
+    effective_total_sek: l.shippingHidden ? totals.subtotal : totals.total,
+    effective_unit_sek: l.shippingHidden ? Math.round((totals.subtotal / ctx.quantity) * 100) / 100 : totals.perUnit,
     screenshot_url: shot(run.store, cartScene(l, GUEST(ctx), guestTotals, true), storeUrl(run.store, "/kassa")),
+    image_url: l.image,
     captured_at: new Date().toISOString(),
   };
   const entry: OfferEntry = {
@@ -1107,7 +1127,9 @@ function storeScript(hunt: MockHunt, run: Run, t0: number, index: number) {
 
 function rankEntries(hunt: MockHunt): OfferEntry[] {
   const tier = (e: OfferEntry) => (e.trust.label === "fake" ? 1 : 0);
-  return [...hunt.offers.values()].sort((a, b) => tier(a) - tier(b) || a.totals.total - b.totals.total);
+  return [...hunt.offers.values()]
+    .filter((e) => !e.listing.shippingHidden)
+    .sort((a, b) => tier(a) - tier(b) || a.totals.total - b.totals.total);
 }
 
 function qtyPhrase(ctx: Ctx, e: OfferEntry): string {
@@ -1117,6 +1139,11 @@ function qtyPhrase(ctx: Ctx, e: OfferEntry): string {
 function summaryMarkdown(hunt: MockHunt, ranked: OfferEntry[]): string {
   const ctx = hunt.ctx;
   const notes: string[] = [];
+  for (const e of hunt.offers.values()) {
+    if (e.listing.shippingHidden) {
+      notes.push(`**${e.run.store.name}** didn't show shipping before checkout, so it isn't ranked.`);
+    }
+  }
   for (const run of hunt.runs) {
     const o = run.plan.outcome;
     if (o.kind === "no_match" || o.kind === "failed") notes.push(o.note);
@@ -1262,7 +1289,10 @@ function compareEntries(a: OfferEntry, b: OfferEntry): CompareResponse {
   const hunt = a.hunt;
   const ctx = hunt.ctx;
   const ranked = rankEntries(hunt).map((e) => e.offer.id);
-  const aFirst = ranked.indexOf(a.offer.id) <= ranked.indexOf(b.offer.id);
+  const ra = ranked.indexOf(a.offer.id);
+  const rb = ranked.indexOf(b.offer.id);
+  const aFirst = rb < 0 ? true : ra < 0 ? false : ra <= rb;
+  const noWinner = ra < 0 && rb < 0;
   const [w, l] = aFirst ? [a, b] : [b, a];
   const qty = ctx.quantity === 1 ? "1 unit" : `${ctx.quantity} units`;
   const diff = Math.abs(w.totals.total - l.totals.total);
@@ -1324,7 +1354,8 @@ function compareEntries(a: OfferEntry, b: OfferEntry): CompareResponse {
 
   const explanation = `${lines.join("\n\n")}\n\n**Why**\n\n${why.map((x) => `- ${x}`).join("\n")}`;
 
-  const shippingText = (e: OfferEntry) => (e.totals.shipping === 0 ? "Free" : formatSek(e.totals.shipping));
+  const shippingText = (e: OfferEntry) =>
+    e.listing.shippingHidden ? "not shown" : e.totals.shipping === 0 ? "Free" : formatSek(e.totals.shipping);
   const priceText = (e: OfferEntry) =>
     e.listing.cart_unit_sek != null && e.listing.cart_unit_sek !== e.listing.price_sek
       ? `${formatSek(e.listing.price_sek)} (cart: ${formatSek(e.listing.cart_unit_sek)})`
@@ -1338,13 +1369,23 @@ function compareEntries(a: OfferEntry, b: OfferEntry): CompareResponse {
     { label: "Membership needed", a: membershipNeeded(a), b: membershipNeeded(b) },
     {
       label: "Effective total",
-      a: `${formatSek(a.totals.total)} for ${qty}`,
-      b: `${formatSek(b.totals.total)} for ${qty}`,
+      a: a.listing.shippingHidden ? "unknown" : `${formatSek(a.totals.total)} for ${qty}`,
+      b: b.listing.shippingHidden ? "unknown" : `${formatSek(b.totals.total)} for ${qty}`,
     },
     { label: "Trust", a: trustText(a), b: trustText(b) },
   ];
 
-  return { winner_id: w.offer.id, explanation_md: explanation, breakdown };
+  if (noWinner) {
+    return {
+      winner_id: "",
+      explanation_md: "Neither offer could be ranked: the stores didn't show shipping before checkout.",
+      breakdown,
+    };
+  }
+  const unrankedNote = l.listing.shippingHidden
+    ? `\n\n${L} didn't show shipping before checkout, so its total is unknown and it can't win.`
+    : "";
+  return { winner_id: w.offer.id, explanation_md: explanation + unrankedNote, breakdown };
 }
 
 /* =====================================================================================

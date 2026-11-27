@@ -83,7 +83,7 @@ Vultr silently serves a default model for unknown model ids; `backend/llm.py` re
 | `frontend/` | Main web UI (React + TypeScript + Vite). Runs standalone in mock mode: `cd frontend && npm install && npm run dev`. See [frontend/README.md](frontend/README.md) for the API contract. |
 | `backend/` | FastAPI app + engine. `backend/contract.py` maps engine events to the frontend's API contract. |
 | `sandbox/` | Browser worker and egress proxy images, run on the sandbox host. |
-| `web/` | Lightweight built-in UI (served at `/lite/`), the hostile demo shop (`/trap/`) and the e-commerce design mockup (`/mockup/`, example data only). |
+| `web/` | Lightweight built-in UI (served at `/lite/`), the hostile demo shop (`/trap/`) and the static design mockup (`/mockup-static/`, example data only). The React storefront is also built with base `/mockup/` and served at `/mockup/`. |
 | `deploy/` | systemd unit, Caddyfile, deploy script. |
 
 The root `.env.example` is for the backend; the frontend has its own in `frontend/.env.example`.

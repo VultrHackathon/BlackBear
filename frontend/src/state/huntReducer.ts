@@ -38,7 +38,12 @@ export interface ActionEntry {
 export interface Frame {
   key: number;
   src: string;
+  /** What the sandbox was doing when this screenshot arrived, e.g. "browsing". */
+  label?: StoreStatus;
 }
+
+/** Screenshots kept per store for the product page gallery. */
+export const MAX_FRAMES = 8;
 
 /** Last blocked thing in a tile; `seq` changes to retrigger the red flash. */
 export interface TileAlert {
@@ -57,6 +62,8 @@ export interface StoreRun {
   message: string | null;
   actions: ActionEntry[];
   frame: Frame | null;
+  /** The last few screenshots, oldest first. */
+  frames: Frame[];
   rejectedScreenshots: number;
   startedAt: number | null;
   endedAt: number | null;
@@ -86,8 +93,8 @@ export type Approval = "none" | "pending" | "approved" | "auto";
 
 export type ReverifyState =
   | { status: "pending" }
-  | { status: "same"; at: string }
-  | { status: "changed"; at: string; previous: number; price: number }
+  | { status: "same"; at: string; shot?: string }
+  | { status: "changed"; at: string; previous: number; price: number; shot?: string }
   | { status: "error"; message: string };
 
 export interface HuntState {
@@ -213,6 +220,7 @@ function newRun(storeId: string): StoreRun {
     message: null,
     actions: [],
     frame: null,
+    frames: [],
     rejectedScreenshots: 0,
     startedAt: null,
     endedAt: null,
@@ -311,7 +319,8 @@ function applyEvent(state: HuntState, e: HuntEvent, at: number): HuntState {
       const run = runOf(s, e.store_id);
       const src = safeImageSrc(e.url);
       if (!src) return withRun(s, { ...run, rejectedScreenshots: run.rejectedScreenshots + 1 });
-      return withRun(s, { ...run, frame: { key: (run.frame?.key ?? 0) + 1, src } });
+      const frame: Frame = { key: (run.frame?.key ?? 0) + 1, src, label: run.status };
+      return withRun(s, { ...run, frame, frames: [...run.frames, frame].slice(-MAX_FRAMES) });
     }
 
     case "offer.found": {
@@ -483,9 +492,10 @@ export function huntReducer(state: HuntState, action: HuntAction): HuntState {
       const offer = state.offers[r.offer_id];
       if (!offer) return state;
       const changed = !r.same_price && r.price_sek !== offer.price_sek;
+      const shot = safeImageSrc(r.screenshot_url) ?? undefined;
       const status: ReverifyState = changed
-        ? { status: "changed", at: r.captured_at, previous: offer.price_sek, price: r.price_sek }
-        : { status: "same", at: r.captured_at };
+        ? { status: "changed", at: r.captured_at, previous: offer.price_sek, price: r.price_sek, shot }
+        : { status: "same", at: r.captured_at, shot };
       return {
         ...state,
         offers: {
@@ -494,7 +504,7 @@ export function huntReducer(state: HuntState, action: HuntAction): HuntState {
             ...offer,
             price_sek: r.price_sek,
             captured_at: r.captured_at || offer.captured_at,
-            screenshot_url: r.screenshot_url || offer.screenshot_url,
+            // The first capture stays the offer's proof; the re-check's screenshot is kept beside it.
           },
         },
         reverify: { ...state.reverify, [r.offer_id]: status },
@@ -510,8 +520,8 @@ export function huntReducer(state: HuntState, action: HuntAction): HuntState {
     case "compare/toggle": {
       const has = state.compare.includes(action.offerId);
       if (has) return { ...state, compare: state.compare.filter((id) => id !== action.offerId) };
-      if (state.compare.length >= 2) return state;
-      return { ...state, compare: [...state.compare, action.offerId] };
+      // Two at most (the compare API takes a pair): a third replaces the oldest.
+      return { ...state, compare: [...state.compare, action.offerId].slice(-2) };
     }
 
     case "compare/clear":

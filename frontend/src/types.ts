@@ -112,6 +112,11 @@ export type Offer = {
   effective_total_sek: number;
   effective_unit_sek: number;
   screenshot_url: string;
+  /**
+   * Optional photo of the product itself, served from the API origin like screenshots.
+   * Absent: the UI shows a neutral placeholder, never a page screenshot.
+   */
+  image_url?: string;
   captured_at: string;
   trust?: Trust;
 };

@@ -7,25 +7,30 @@ import { forwardRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactN
  * A raised panel. The border colour is left to the base layer (`line`) so a caller
  * can add `border-line-strong` without fighting a colour class in here.
  */
-export const card = "rounded-2xl border bg-surface bg-linear-to-b from-ink/3 to-transparent to-50% shadow-card";
+export const card = "rounded-2xl border bg-surface shadow-card";
 
 /** A recessed panel inside a card: readouts, log entries, quoted agent text. */
 export const well = "rounded-xl border bg-canvas/50 inset-shadow-well";
 
 /* ---------- Buttons ---------- */
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "ink" | "ghost";
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 const BUTTON_BASE =
   "relative inline-flex shrink-0 items-center justify-center border whitespace-nowrap select-none transition duration-150 ease-press enabled:active:translate-y-px enabled:active:duration-75 disabled:opacity-50 disabled:shadow-none";
 
-/** Primary = the single lime accent. Use it for the main action of a section only. */
+/**
+ * Primary = the single yellow accent: the main action of a view only. Ink = a solid
+ * black key for strong secondary actions on the light page. Highlights are white and
+ * shades black, so the same keys read correctly on the light page and the dark stage.
+ */
 const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "border-black/25 bg-accent bg-linear-to-b from-accent-hover to-accent bg-origin-border font-semibold text-on-accent shadow-accent enabled:hover:to-accent-hover enabled:hover:shadow-accent-hover enabled:active:from-accent enabled:active:to-accent enabled:active:shadow-accent-pressed",
+    "border-black/15 bg-accent bg-linear-to-b from-accent-hover to-accent bg-origin-border font-semibold text-on-accent shadow-accent enabled:hover:to-accent-hover enabled:hover:shadow-accent-hover enabled:active:from-accent enabled:active:to-accent enabled:active:shadow-accent-pressed",
   secondary:
-    "border-line-strong bg-raised bg-linear-to-b from-ink/7 to-transparent font-medium text-ink shadow-key enabled:hover:border-muted/60 enabled:hover:from-ink/12 enabled:hover:shadow-key-hover enabled:active:bg-surface enabled:active:from-transparent enabled:active:shadow-key-pressed",
+    "border-line-strong bg-surface bg-linear-to-b from-white/8 to-black/4 font-medium text-ink shadow-key enabled:hover:border-muted/50 enabled:hover:from-white/14 enabled:hover:shadow-key-hover enabled:active:from-transparent enabled:active:to-transparent enabled:active:shadow-key-pressed",
+  ink: "border-black bg-ink bg-linear-to-b from-white/12 to-transparent bg-origin-border font-semibold text-white shadow-ink enabled:hover:from-white/20 enabled:active:from-transparent enabled:active:shadow-key-pressed",
   ghost:
     "border-transparent font-medium text-muted enabled:hover:bg-raised enabled:hover:text-ink enabled:active:bg-line",
 };
@@ -254,7 +259,7 @@ export function ToggleChip({
       title={title}
       className={`inline-flex h-8 items-center gap-1.5 rounded-full border pr-3 pl-2 text-sm transition duration-150 ease-press active:translate-y-px active:shadow-key-pressed ${
         pressed
-          ? "border-line-strong bg-raised bg-linear-to-b from-ink/7 to-transparent text-ink shadow-key hover:border-muted/60"
+          ? "border-line-strong bg-surface bg-linear-to-b from-white/8 to-black/4 text-ink shadow-key hover:border-muted/60"
           : "text-muted hover:border-line-strong hover:text-ink"
       }`}
     >

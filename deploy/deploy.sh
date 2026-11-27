@@ -6,6 +6,8 @@ cd /opt/app/BlackBear
 ./sandbox/build.sh
 # Build the React frontend against the real API (same origin)
 (cd frontend && npm ci --silent && VITE_USE_MOCK=false VITE_API_BASE= npm run build --silent)
+# Storefront build served by Caddy at /mockup/
+(cd frontend && VITE_USE_MOCK=false VITE_API_BASE= npx vite build --base=/mockup/ --outDir dist-mockup)
 cp deploy/blackbear.service /etc/systemd/system/blackbear.service
 cp deploy/Caddyfile /etc/caddy/Caddyfile
 systemctl daemon-reload
